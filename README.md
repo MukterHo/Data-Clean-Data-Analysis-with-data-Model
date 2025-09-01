@@ -1,2 +1,2 @@
-# Data-Clean-Data-Analysis-with-data-Model
+# Data-Clean-Data-Analysis-with-Model
 For Analysis help
