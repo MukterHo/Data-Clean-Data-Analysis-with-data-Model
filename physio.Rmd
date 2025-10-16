@@ -54,7 +54,7 @@ library(haven)
 ```{r}
 #F:NYU_data/Raw/Physio_NYU_36Months_draft_WIDE
 
-physio_data<-read.csv("F:NYU_data/Raw/Physio_NYU_36Months_draft_WIDE.csv")
+physio_data<-read_dta("H:/.shortcut-targets-by-id/10GfELvbVWTnThBtJs-WKEAmKwWDCBjeu/Clean Dataset/2_Data_file/Physio_NYU_data.dta")
 
 ```
 
