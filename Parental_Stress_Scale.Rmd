@@ -1,0 +1,196 @@
+---
+title: "Parental Strees Scale"
+author: "Mukter"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+# Necessary Labiry
+```{r}
+#install.packages("usethis")    # if not installed
+library(usethis)
+download.file(
+  url = "https://github.com/MukterHo/Data-Clean-Data-Analysis-with-data-Model/archive/refs/heads/main.zip",
+  destfile = "data-model-main.zip",
+  mode = "wb"   # important for binary files like ZIP
+)
+
+unzip("data-model-main.zip", exdir = ".")
+list.files("Data-Clean-Data-Analysis-with-data-Model-main")
+
+
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(haven)
+library(dplyr)
+
+
+```
+
+
+## Data Run
+
+```{r}
+
+HH_survey_data<-haven::read_dta("H:/.shortcut-targets-by-id/10GfELvbVWTnThBtJs-WKEAmKwWDCBjeu/Clean Dataset/2_Data_file/HH_survey_data.dta")
+
+PSS_data<-HH_survey_data %>% select(fcn_no,respondent_cat,pss_1,pss_2,pss_3,pss_4,pss_5,pss_6,pss_7,pss_8,pss_9,pss_10,pss_11) %>% filter(!is.na(pss_1))
+
+# View the data set
+
+View(PSS_data)
+
+
+```
+
+
+
+
+#### Label keep 
+
+
+```{r}
+
+
+# Convert all pss_ variables to factors with labels
+PSS_data <- PSS_data %>%
+  mutate(across(starts_with("pss_"), ~as_factor(.)))
+
+
+
+```
+
+
+
+
+###Summary of the data set
+
+```{r}
+PSS_data %>% select(starts_with("pss_")) %>%tbl_summary()
+
+```
+
+
+
+
+
+
+
+### Scale Scorring
+
+```{r}
+# Convert labels into numeric scores for pss_1 … pss_11
+PSS_data <- PSS_data %>%
+  mutate(across(starts_with("pss_"),
+                ~recode(as.character(.),
+                        "Almost never"              = 1,
+                        "Less than half of the time"= 2,
+                        "More than half of the time"= 4,
+                        "Almost always"             = 5,
+                        "Refused"                   = NA_real_,
+                        "Don't know"                = NA_real_
+                ) %>% as.numeric()))
+
+
+
+# Reverse-score pss_3 and pss_4
+
+# Reverse score for 1-5 scale
+PSS_data <- PSS_data %>%
+  mutate(
+    pss_3 = case_when(
+      pss_3 == 1 ~ 5,
+      pss_3 == 2 ~ 4,
+      pss_3 == 3 ~ 3,
+      pss_3 == 4 ~ 2,
+      pss_3 == 5 ~ 1,
+      TRUE ~ NA_real_
+    ),
+    pss_4 = case_when(
+      pss_4 == 1 ~ 5,
+      pss_4 == 2 ~ 4,
+      pss_4 == 3 ~ 3,
+      pss_4 == 4 ~ 2,
+      pss_4 == 5 ~ 1,
+      TRUE ~ NA_real_
+    )
+  )
+
+##Total Score
+
+PSS_data <- PSS_data %>%
+  rowwise() %>%
+  mutate(PSS_total = sum(c_across(starts_with("pss_")), na.rm = TRUE),
+         PSS_mean  = mean(c_across(starts_with("pss_")), na.rm = TRUE)) %>%
+  ungroup()
+
+# Calculate mean and SD of PSS_total
+mean_pss <- mean(PSS_data$PSS_total, na.rm = TRUE)
+sd_pss   <- sd(PSS_data$PSS_total, na.rm = TRUE)
+summary(PSS_data$PSS_total)
+mean_pss
+sd_pss
+```
+
+
+
+### Cronbach Alpha check
+
+```{r}
+# Select only the scored PSS items (after reverse coding)
+pss_items <- PSS_data %>% select(pss_1:pss_11)
+
+# Cronbach's alpha
+alpha_result <- psych::alpha(pss_items)
+
+# View result
+alpha_result
+```
+
+
+### Normal distribution check
+
+```{r}
+library(ggplot2)
+
+ggplot(PSS_data, aes(x = PSS_total)) +
+  geom_histogram(aes(y = ..density..), bins = 30, color = "black", fill = "lightblue") +
+  geom_density(color = "red", linewidth = 1) +  # use 'linewidth' instead of 'size'
+  labs(title = "Distribution of Parental Stress Score (Total)",
+       x = "PSS Total Score", y = "Density")
+
+
+```
+
+# Skewness & Kurtosis
+# Skewness near 0 → symmetric
+Excellent: -1 to +1. 
+Generally Acceptable: -2 to +2. 
+
+# Kurtosis near 3 → normal-like(Accapted Range -2 to +2)
+Commonly Accepted Range for Normality (Excess Kurtosis):
+Generally Acceptable: -3 to +3 (or even -2 to +2, with some sources suggesting more stringent criteria). 
+
+```{r}
+#install.packages("moments")  # install the package once
+library(moments)             # then load it
+
+
+skewness(PSS_data$PSS_total, na.rm = TRUE)
+kurtosis(PSS_data$PSS_total, na.rm = TRUE)
+
+```
+
+
+
+
+
+
+
+
+
