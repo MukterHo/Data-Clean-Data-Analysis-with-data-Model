@@ -1,0 +1,380 @@
+---
+title: "OMCI Data Analysis"
+author: "Mukter"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+
+```{r}
+file_path1 <- "H:/My Drive/NYU_LONGITUDINAL_raw_data_cleaning_2023.xlsx"
+
+OMCI_Data<-read_dta("H:/.shortcut-targets-by-id/10GfELvbVWTnThBtJs-WKEAmKwWDCBjeu/Clean Dataset/2_Data_file/HH_OMCI.dta")
+```
+
+
+```{r}
+library(dplyr)
+
+# Get only cases rated by both raters
+paired_data <- OMCI_Data %>%
+  group_by(fcn_no) %>%  # assuming there's an ID column
+  filter(n() == 2) %>%  # only keep IDs with both ratings
+  arrange(fcn_no, test_io) %>%   # sort to ensure consistent ordering
+  select(scaffolding:Total,fcn_no,test_io)
+# Now separate into rater1 and rater2
+rater1 <- paired_data %>% 
+  filter(test_io == "Tester") %>% 
+  pull(Total)
+
+rater2 <- paired_data %>% 
+  filter(test_io != "Tester") %>% 
+  pull(Total)
+
+# Now compute Kappa
+if(length(rater1) == length(rater2)) {
+  kappa_result <- irr::kappa2(data.frame(rater1, rater2))
+  print(kappa_result)
+} else {
+  cat("Still unbalanced:", length(rater1), "vs", length(rater2))
+}
+
+
+```
+
+```{r}
+### Piku Chowdhury 
+data<-OMCI_Data %>% 
+  filter(Submit_By=="Piku Chowdhury"  & test_io == "Tester" )
+
+Io<-OMCI_Data %>% 
+  filter(test_io=="IO") %>% 
+  distinct(fcn_no,.keep_all = TRUE)
+
+Pariad_data <- bind_rows(data, Io) %>%
+  group_by(fcn_no) %>%  # assuming there's an ID column
+  filter(n() == 2) %>%  # only keep IDs with both ratings
+  arrange(fcn_no, test_io) %>%   # sort to ensure consistent ordering
+  select(scaffolding:Total,fcn_no,test_io)
+
+# Now separate into rater1 and rater2
+rater1 <- Pariad_data %>% 
+  filter(test_io == "Tester") %>% 
+  pull(Total)
+
+rater2 <- Pariad_data %>% 
+  filter(test_io != "Tester") %>% 
+  pull(Total)
+
+# Now compute Kappa
+if(length(rater1) == length(rater2)) {
+  kappa_result <- irr::kappa2(data.frame(rater1, rater2))
+  print(kappa_result)
+} else {
+  cat("Still unbalanced:", length(rater1), "vs", length(rater2))
+}
+
+
+
+  
+```
+```{r}
+### Sabekun Nahar 
+data<-OMCI_Data %>% 
+  filter(Submit_By=="Sabekun Nahar"  & test_io == "Tester" )
+
+Io<-OMCI_Data %>% 
+  filter(test_io=="IO") %>% 
+  distinct(fcn_no,.keep_all = TRUE)
+
+Pariad_data <- bind_rows(data, Io) %>%
+  group_by(fcn_no) %>%  # assuming there's an ID column
+  filter(n() == 2) %>%  # only keep IDs with both ratings
+  arrange(fcn_no, test_io) %>%   # sort to ensure consistent ordering
+  select(scaffolding:Total,fcn_no,test_io)
+
+# Now separate into rater1 and rater2
+rater1 <- Pariad_data %>% 
+  filter(test_io == "Tester") %>% 
+  pull(Total)
+
+rater2 <- Pariad_data %>% 
+  filter(test_io != "Tester") %>% 
+  pull(Total)
+
+# Now compute Kappa
+if(length(rater1) == length(rater2)) {
+  kappa_result <- irr::kappa2(data.frame(rater1, rater2))
+  print(kappa_result)
+} else {
+  cat("Still unbalanced:", length(rater1), "vs", length(rater2))
+}
+
+
+
+```
+```{r}
+### Roksana Akter 
+data<-OMCI_Data %>% 
+  filter(Submit_By=="Roksana Akter"  & test_io == "Tester" )
+
+Io<-OMCI_Data %>% 
+  filter(test_io=="IO") %>% 
+  distinct(fcn_no,.keep_all = TRUE)
+
+Pariad_data <- bind_rows(data, Io) %>%
+  group_by(fcn_no) %>%  # assuming there's an ID column
+  filter(n() == 2) %>%  # only keep IDs with both ratings
+  arrange(fcn_no, test_io) %>%   # sort to ensure consistent ordering
+  select(scaffolding:Total,fcn_no,test_io)
+
+# Now separate into rater1 and rater2
+rater1 <- Pariad_data %>% 
+  filter(test_io == "Tester") %>% 
+  pull(Total)
+
+rater2 <- Pariad_data %>% 
+  filter(test_io != "Tester") %>% 
+  pull(Total)
+
+# Now compute Kappa
+if(length(rater1) == length(rater2)) {
+  kappa_result <- irr::kappa2(data.frame(rater1, rater2))
+  print(kappa_result)
+} else {
+  cat("Still unbalanced:", length(rater1), "vs", length(rater2))
+}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+### Ayrin Tasnim
+data<-OMCI_Data %>% 
+  filter(Submit_By=="Ayrin Tasnim"  & test_io == "IO" )
+
+Io<-OMCI_Data %>% 
+  filter(test_io=="Tester") %>% 
+  distinct(fcn_no,.keep_all = TRUE)
+
+Pariad_data <- bind_rows(data, Io) %>%
+  group_by(fcn_no) %>%  # assuming there's an ID column
+  filter(n() == 2) %>%  # only keep IDs with both ratings
+  arrange(fcn_no, test_io) %>%   # sort to ensure consistent ordering
+  select(scaffolding:Total,fcn_no,test_io)
+
+# Now separate into rater1 and rater2
+rater1 <- Pariad_data %>% 
+  filter(test_io == "Tester") %>% 
+  pull(Total)
+
+rater2 <- Pariad_data %>% 
+  filter(test_io != "Tester") %>% 
+  pull(Total)
+
+# Now compute Kappa
+if(length(rater1) == length(rater2)) {
+  kappa_result <- irr::kappa2(data.frame(rater1, rater2))
+  print(kappa_result)
+} else {
+  cat("Still unbalanced:", length(rater1), "vs", length(rater2))
+}
+
+```
+
+
+```{r}
+### Subah Hasneen
+data<-OMCI_Data %>% 
+  filter(Submit_By=="Subah Hasneen"  & test_io == "IO" )
+
+Io<-OMCI_Data %>% 
+  filter(test_io=="Tester") %>% 
+  distinct(fcn_no,.keep_all = TRUE)
+
+Pariad_data <- bind_rows(data, Io) %>%
+  group_by(fcn_no) %>%  # assuming there's an ID column
+  filter(n() == 2) %>%  # only keep IDs with both ratings
+  arrange(fcn_no, test_io) %>%   # sort to ensure consistent ordering
+  select(scaffolding:Total,fcn_no,test_io)
+
+# Now separate into rater1 and rater2
+rater1 <- Pariad_data %>% 
+  filter(test_io == "Tester") %>% 
+  pull(Total)
+
+rater2 <- Pariad_data %>% 
+  filter(test_io != "Tester") %>% 
+  pull(Total)
+
+# Now compute Kappa
+if(length(rater1) == length(rater2)) {
+  kappa_result <- irr::kappa2(data.frame(rater1, rater2))
+  print(kappa_result)
+} else {
+  cat("Still unbalanced:", length(rater1), "vs", length(rater2))
+}
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+library(irr)
+library(dplyr)
+library(tidyr)
+
+
+# Remove Observer data and handle duplicates by averaging
+icc_data <- OMCI_Data %>%
+  filter(Submit_By != "Observer") %>%
+  group_by(fcn_no, Submit_By) %>%
+  summarise(Total = mean(Total, na.rm = TRUE)) %>%
+  pivot_wider(names_from = Submit_By, values_from = Total) %>% 
+  select(-Owahid)
+
+# View the prepared data
+head(icc_data)
+```
+```{r}
+### ICC Check
+
+Icc<-OMCI_Data %>% filter(test_io!="Observer") %>%    # sort to ensure consistent ordering
+  select(scaffolding:Total) %>% select(-omcidate)
+
+
+icc(Icc)
+```
+
+```{r}
+# Check for missing values
+colSums(is.na(ratings_matrix))
+
+# Check data distribution
+summary(ratings_matrix)
+
+# Visualize agreement
+library(ggplot2)
+ggplot(OMCI_Data1, aes(x = Submit_By, y = Total)) + 
+  geom_boxplot() +
+  labs(title = "Distribution of Ratings by Rater")
+```
+```{r}
+library(irr)
+
+# Reshape data: one row per subject, one column per tester
+icc_data <- OMCI_Data %>%
+    filter(test_io=="Tester") %>% 
+  filter(Submit_By %in% c("Piku Chowdhury", "Roksana Akter", "Sabekun Nahar")) %>%
+  select(fcn_no, Submit_By, Total) %>%
+  pivot_wider(names_from = Submit_By, values_from = Total)
+
+# Calculate ICC (for agreement between raters)
+icc_result <- icc(icc_data[, -1], model = "twoway", type = "agreement", unit = "single")
+print(icc_result)
+summary(icc_result)
+```
+```{r}
+Data<-OMCI_Data %>% 
+  filter(test_io=="Tester") %>% 
+  select(Submit_By,scaffolding:disengagement)
+View(Data)
+```
+
+
+
+
+
+
+```{r}
+library(dplyr)
+library(psych)
+
+# Calculate Cronbach's alpha for each tester
+alpha_results <- OMCI_Data %>%
+  filter(test_io=="Tester") %>% 
+  filter(Submit_By %in% c("Sabekun Nahar", "Piku Chowdhury", "Roksana Akter")) %>%
+  group_by(Submit_By) %>%
+  summarise(
+    n = n(),
+    `Cronbach's alpha` = {
+      # Need at least 2 items/ratings to calculate alpha
+      if(n() >= 2) {
+        # For single rater, we need multiple items - assuming you have multiple test items
+        # If not, Cronbach's alpha isn't appropriate (use ICC instead)
+        # This assumes you have multiple test items (item1, item2, etc.) per tester
+        items <- select(cur_data(), scaffolding:disengagement) # Adjust based on your actual item columns
+        if(ncol(items) >= 2) {
+          psych::alpha(items, check.keys = TRUE)$total$raw_alpha
+        } else {
+          NA_real_
+        }
+      } else {
+        NA_real_
+      }
+    }
+  ) %>%
+  rename(`Tester Name` = Submit_By)
+
+# Format the results
+alpha_results %>%
+  mutate(`Cronbach's alpha` = round(`Cronbach's alpha`, 3)) %>%
+  knitr::kable()
+```
+
+
+```{r}
+
+OMCI_Data<-read_dta("C:/Users/icddrb/Downloads/CCIO_Data.dta")
+excel_file_path1 <-  "C:/Users/icddrb/Desktop/NYU_Data"
+write.xlsx(OMCI_Data , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

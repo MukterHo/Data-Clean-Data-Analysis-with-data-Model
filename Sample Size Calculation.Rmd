@@ -1,0 +1,114 @@
+---
+title: "Sample Size Calcullation"
+author: "Mukter"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## 1. Installation and Loading
+First, install and load the necessary package.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+# Install the package (do this once)
+install.packages("pwr")
+
+# Load the library (do this in every R session)
+library(pwr)
+
+
+```
+
+##2. Cross-Sectional Study
+Goal: To estimate a prevalence or compare a mean/proportion to a known value.
+
+#Example 1: Estimating a single proportion (e.g., disease prevalence)
+
+
+
+```{r }
+# h = effect size (approximate difference from null for calculation)
+# power = 0.8, sig.level = 0.05 are conventional defaults
+pwr.p.test(h = 0.2, # "small" effect size (use ES.h() for precise calculation)
+           power = 0.8,
+           sig.level = 0.05)
+```
+
+#Example 2: Comparing two proportions (e.g., prevalence in men vs. women)
+
+```{r}
+# We hypothesize 40% prevalence in group 1 vs. 60% in group 2
+pwr.2p.test(h = ES.h(p1 = 0.4, p2 = 0.6), # Calculate effect size from proportions
+            power = 0.8,
+            sig.level = 0.05)
+```
+
+#Example 3: Comparing two means (e.g., average BMI in two groups)
+
+```{r}
+# d = effect size (standardized difference: (mean1 - mean2) / pooled SD)
+# A d of 0.5 is a "medium" effect size
+pwr.t.test(d = 0.5,
+           power = 0.8,
+           sig.level = 0.05,
+           type = "two.sample") # Independent samples t-test
+```
+
+
+
+##3. Case-Control Study
+Goal: To compare the odds of exposure in cases vs. controls. The calculation is identical to comparing two proportions.
+
+
+```{r}
+# We expect 20% exposure in controls and 50% in cases
+# This calculates sample size per group (n1 and n2 will be the same)
+pwr.2p2n.test(h = ES.h(p1 = 0.2, p2 = 0.5),
+              n1 = NULL, # We want to find n1
+              n2 = NULL, # and n2 (will be equal)
+              power = 0.8,
+              sig.level = 0.05)
+```
+
+##4. Cohort Study / Randomized Clinical Trial (RCT)
+Goal: To compare the incidence of an outcome between an exposed/intervention group and an unexposed/control group. The calculation is the same as for a case-control study.
+
+Example: Comparing two proportions (e.g., risk difference)
+
+```{r}
+# We expect a 10% event rate in the control group and a 20% rate in the treatment group.
+# This calculates the sample size needed per group.
+pwr.2p.test(h = ES.h(p1 = 0.1, p2 = 0.2),
+            power = 0.8,
+            sig.level = 0.05)
+```
+
+
+#Example: Comparing two means (e.g., change in blood pressure)
+```{r}
+# d = effect size (e.g., we expect a 5 mmHg difference, pooled SD = 10 mmHg -> d = 0.5)
+pwr.t.test(d = 0.5,
+           power = 0.9, # RCTs often use higher power (e.g., 90%)
+           sig.level = 0.05,
+           type = "two.sample")
+```
+
+
+#Example: RCT with unequal group sizes
+
+```{r}
+# If you plan to have twice as many participants in the treatment arm (k = n1/n2 = 2)
+pwr.2p2n.test(h = ES.h(p1 = 0.1, p2 = 0.2),
+              n1 = NULL,
+              n2 = NULL,
+              power = 0.8,
+              sig.level = 0.05,
+              k = 2) # k = ratio of group sizes (n1/n2)
+```
+
+
+
+

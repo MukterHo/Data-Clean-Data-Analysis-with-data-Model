@@ -84,7 +84,7 @@ pailot_data <- pailot_data %>% dplyr::rename(fcn_number = `FCN_no/HHID`)
 
 ```{r}
 # Check for character vs numeric issues
-pailot_data <- pailot_data %>% mutate(fcn_number = as.character(fcn_number))
+pailot_data <- pailot_data %>% mutate(fcn_no = as.character(fcn_number))
 physio_data <- physio_data %>% mutate(fcn_no = as.character(fcn_no))
 
 ### Duplicated check
@@ -109,7 +109,7 @@ physio_data <- physio_data %>% mutate(fcn_no = as.character(fcn_no))
 
 
 # Then try joining again
-join_data <- left_join(pailot_data, physio_data, by = c("fcn_number" = "fcn_no"))
+join_data <- left_join(pailot_data, physio_data, by = c("fcn_no" = "fcn_no"))
 
 ## View 
 
@@ -154,6 +154,8 @@ join_data %>% select(starttime, endtime, duration_minutes, duration_hours)
 
 
 ```{r}
+##### All section duration time 
+
 join_data <- join_data %>%
   mutate(
     # Convert times and handle cases where end time might be after midnight
@@ -259,11 +261,128 @@ View(Mother_join_data %>%select(saliva_id,Saliva_ID...40))
 ```
 
 
-
+#### Analysis Of the Mother Physio Data
 
 ```{r}
 
+Mother_physio<-physio_data %>% filter(respondent_cat==10)
+
 ```
+
+### Table Summary
+
+
+```{r}
+Mother_physio %>% select(restype,res_age,drink_tea_1,brush_teeth_1,dental_work_1,any_medicine_1,oral_injury_1,betel_leaf_1,smoke_1,chronic_disease_1_1,chronic_disease_2_1,chronic_disease_3_1,chronic_disease_4_1,chronic_disease_5_1,chronic_disease_6_1,chronic_disease_7_1,chronic_disease_8_1,chronic_disease_9_1,chronic_disease_oth_1,current_disease_1_1,current_disease_2_1,current_disease_3_1,current_disease_4_1,current_disease_5_1,current_disease_6_1,current_disease_8_1,current_disease_9_1,current_disease_10_1,current_disease_11_1,current_disease_12_1,current_disease_13_1,current_disease_other_1,systolic_pressure_1,diastolic_pressure_1,systolic_pressure_2,diastolic_pressure_2,any_illness_1,any_illness_2,any_illness_3,any_illness_4,any_illness_5,any_illness_6,any_illness_oth) %>% tbl_summary()
+```
+
+
+
+```{r}
+library(gtsummary)
+library(dplyr)
+
+Mother_physio %>%
+  select(
+    restype, res_age, drink_tea_1, brush_teeth_1, dental_work_1, any_medicine_1,
+    oral_injury_1, betel_leaf_1, smoke_1, chronic_disease_1_1, chronic_disease_2_1,
+    chronic_disease_3_1, chronic_disease_4_1, chronic_disease_5_1, chronic_disease_6_1,
+    chronic_disease_7_1, chronic_disease_8_1, chronic_disease_9_1, chronic_disease_oth_1,
+    current_disease_1_1, current_disease_2_1, current_disease_3_1, current_disease_4_1,
+    current_disease_5_1, current_disease_6_1, current_disease_8_1, current_disease_9_1,
+    current_disease_10_1, current_disease_11_1, current_disease_12_1, current_disease_13_1,
+    current_disease_other_1, systolic_pressure_1, diastolic_pressure_1,
+    systolic_pressure_2, diastolic_pressure_2, any_illness_1, any_illness_2,
+    any_illness_3, any_illness_4, any_illness_5, any_illness_6, any_illness_oth
+  ) %>%
+  tbl_summary(
+    type = list(where(is.numeric) ~ "continuous", where(is.factor) ~ "categorical"),
+    statistic = list(
+      all_continuous() ~ "{mean} ({sd})",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    digits = all_continuous() ~ 1  # round mean & sd to 1 decimal
+  ) %>%
+  modify_header(label = "**Characteristic**") %>%
+  modify_spanning_header(all_stat_cols() ~ "**N = {N}**") %>%
+  bold_labels()
+
+```
+
+
+
+
+
+
+### Duration Miniuts
+
+```{r}
+
+# Convert to POSIXct and calculate duration
+Mother_join_data <- Mother_join_data %>%
+  mutate(
+    survey_s_time = parse_date_time(survey_s_time, orders = "I:M:S p"),
+    survey_e_time = parse_date_time(survey_e_time, orders = "I:M:S p"),
+    duration_minutes = as.numeric(difftime(survey_e_time, survey_s_time, units = "mins"))
+  )
+
+
+
+
+View(Mother_join_data %>% select(survey_s_time,survey_e_time,duration_minutes))
+
+
+```
+
+
+
+
+
+
+
+```{r}
+Mother_join_data %>%
+  select(food_duration_minutes,
+         saliva_duration_minutes,
+         chronic_duration_minutes,
+         current_duration_minutes,
+         body_duration_tot_minutes,
+         body_duration_mo_minutes,
+         body_duration_mc_minutes,
+         body_duration_co_minutes,
+         ccio_duration_minutes,
+         duration_minutes) %>%
+  tbl_summary(
+    type = list(where(is.numeric) ~ "continuous",
+                where(is.factor) ~ "categorical"),
+    statistic = list(
+      all_continuous() ~ "{mean} ({sd})",
+      all_categorical() ~ "{n} ({p}%)"
+    )
+  ) %>%
+  modify_header(label = "**Characteristic**") %>%
+  modify_spanning_header(all_stat_cols() ~ "**N = {N}**") %>%
+  bold_labels()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

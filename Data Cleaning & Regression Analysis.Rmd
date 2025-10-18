@@ -1,0 +1,2299 @@
+---
+title: "Kakon Apa"
+author: "Mukter"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(foreign)
+library(haven)
+library(dplR)
+library(tidyverse)
+library(labelled)
+library(survey)
+library(gtsummary)
+library(gt)
+library(lubridate)
+library(gmodels)
+library(gt)
+library(dplyr)
+library(janitor)
+library(openxlsx)
+library(officer)
+library(flextable)
+library(rmarkdown)
+library(knitr)
+library(psych)
+library(irr)
+library(gtExtras)
+library(ggplot2)
+library(lubridate)
+library(labelled)
+library(haven)
+```
+
+
+
+
+
+
+
+
+#####################3 Run data_set_set set (ALL data_set_set)
+
+```{r}
+data_set<-read_stata("Data_share_with_Mukter_31_Jul_2025.dta")
+```
+
+```{r}
+
+### Data Leabaling
+data_set <- data_set %>%
+  mutate(
+    father_ocu_cat_recode = case_when(
+      father_ocu_cat %in% c(2, 4, 5, 9, 10, 11, 13, 22, 26, 27) ~ "Job",
+      father_ocu_cat %in% c(6, 7, 8, 23) ~ "Business",
+      father_ocu_cat == 29 ~ "Lives Abroad",
+      father_ocu_cat == 21 ~ "Retired",
+      father_ocu_cat %in% c(19, 20) ~ "Other",
+      TRUE ~ NA_character_  # In case of unexpected codes
+    ),
+    father_ocu_cat_recode = factor(father_ocu_cat_recode, 
+                                    levels = c("Job", "Business", "Lives Abroad", "Retired", "Other"))
+  )
+
+library(dplyr)
+
+data_set <- data_set %>%
+  mutate(
+    mother_ocu_cat_recode = case_when(
+      mother_ocu_cat %in% c(1, 25) ~ "Housewife",
+      mother_ocu_cat %in% c(2, 4, 5, 9, 10, 11, 13, 26) ~ "Job",
+      mother_ocu_cat %in% c(6, 7, 8, 23) ~ "Business",
+      TRUE ~ "Others"  # Any other value not listed above
+    ),
+    mother_ocu_cat_recode = factor(
+      mother_ocu_cat_recode,
+      levels = c("Housewife", "Job", "Business", "Others")
+    )
+  )
+
+data_set <- data_set %>%
+  mutate(
+    SEX_1 = factor(SEX_1, 
+                   levels = c(1, 2), 
+                   labels = c("Male", "Female"))
+  )
+
+
+
+
+data_set <- data_set %>%
+  mutate(
+    mother_edu_cat = factor(mother_edu_cat,
+                            levels = c(0, 1, 2, 3),
+                            labels = c("No formal education",
+                                       "High school (0–10)",
+                                       "Bachelor’s (11–13)",
+                                       "Master’s and above"))
+  )
+
+
+
+
+
+data_set <- data_set %>%
+  mutate(
+    father_edu_cat = factor(father_edu_cat,
+                            levels = c(0, 1, 2, 3),
+                            labels = c("No formal education",
+                                       "High school (0–10)",
+                                       "Bachelor’s (11–13)",
+                                       "Master’s and above"))
+  )
+
+data_set <- data_set %>%
+  mutate(
+    family_income_cat = factor(family_income_cat,
+                               levels = c(1, 2, 3),
+                               labels = c("< 50000 BDT",
+                                          "50000 - 100000 BDT",
+                                          "> 100000 BDT"))
+  )
+
+
+data_set <- data_set %>%
+  mutate(
+    famiy_size = factor(famiy_size,
+                        levels = c(0, 1),
+                        labels = c("≤ 4 person", "≥ 5 person"))
+  )
+
+data_set <- data_set %>%
+  mutate(
+    no_child = factor(no_child,
+                      levels = c(0, 1),
+                      labels = c("1-2 Children", "≥ 3 Children"))
+  )
+
+
+data_set <- data_set %>%
+  mutate(
+    child_age_cat = factor(age_cat,
+                      levels = c(1, 2),
+                      labels = c("6-10 Years", "11-14 Years"))
+  )
+
+
+
+
+#data_set$Child_AGE <- as.numeric(data_set$AGE)
+
+
+
+
+
+# If CLAS is numeric and needs to be converted to labels
+data_set$child_CLAS_label <- factor(data_set$CLAS,
+                             levels = 2:8,
+                             labels = c("Class Two", "ClassThree", "Class Four",
+                                       "Class Five", "Class Six", "Class Seven",
+                                       "Class Eight"))
+
+
+
+####DAWBA Analysis 
+
+
+# Convert to factor with labels
+data_set$total_DAWBA_score_cat <- factor(
+  data_set$total_DAWBA_score_cat,
+  levels = c(1, 2, 3),
+  labels = c("No problem", "At least one problem exists", "More than one problem exists")
+)
+
+
+data_set <- data_set %>%
+  rename(
+    screen_use_keep_busy    = PAR_Q_31_1,
+    screen_use_calm_child   = PAR_Q_31_2,
+    screen_use_reward       = PAR_Q_31_3,
+    screen_use_educational  = PAR_Q_31_4,
+    screen_use_parent_free  = PAR_Q_31_5
+  )
+
+
+data_set <- data_set %>%
+  rename(
+    watch_tv_with_child         = PAR_Q_32_1,
+    watch_entertainment_video   = PAR_Q_32_2,
+    edu_laptop_with_child       = PAR_Q_32_3,
+    game_smartphone_with_child  = PAR_Q_32_4
+  )
+
+library(dplyr)
+
+data_set <- data_set %>%
+  rename(
+    eat_meals_together     = PAR_Q_33_1,
+    play_sports_together   = PAR_Q_33_2,
+    attend_social_events   = PAR_Q_33_3,
+    read_books_together    = PAR_Q_33_4
+  )
+# Have Any internet
+data_set <- data_set %>%
+  mutate(
+    internet_type = case_when(
+      PAR_Q_18 == 1 & PAR_Q_19 == 1 ~ "Mobile data",
+      PAR_Q_18 == 1 & PAR_Q_19 == 2 ~ "Broadband/WiFi",
+      TRUE ~ NA_character_
+    )) %>%
+  mutate(internet_type = factor(internet_type, levels = c("Broadband/WiFi", "Mobile data")))
+### Mantal & Social Behavar
+
+
+
+data_set <- data_set %>%
+  mutate(
+    Feel_Happy = case_when(
+      STU_PSB_Q_1 == 1 ~ "At home",
+      STU_PSB_Q_1 == 2 ~ "At school",
+      STU_PSB_Q_1 == 3 ~ "At playground",
+      STU_PSB_Q_1 == 4 ~ "At a family gathering",
+      STU_PSB_Q_1 == 5 ~ "Watching TV/using phone",
+      
+      STU_PSB_Q_1 == 6   ~ "Others",
+      TRUE ~ NA_character_
+    )
+  )
+
+
+library(dplyr)
+library(gtsummary)
+
+# Create Anger_Reason variable
+data_set <- data_set %>%
+  mutate(
+    Anger_Reason = case_when(
+      STU_PSB_Q_2 == 1 ~ "When phone is taken away",
+      STU_PSB_Q_2 == 2 ~ "Not being able to watch TV",
+      STU_PSB_Q_2 == 3 ~ "Not being able to play with friends",
+      STU_PSB_Q_2 == 4 ~ "Not being able to play in playground",
+      STU_PSB_Q_2 == 5 ~ "Other",
+      TRUE ~ NA_character_
+    ),
+    Anger_Reason = factor(Anger_Reason)
+  )
+
+
+# Create labeled meal-time behavior variable
+data_set <- data_set %>%
+  mutate(
+    Meal_Time_Behavior = case_when(
+      STU_PSB_Q_5 == 1 ~ "Sitting at table with others",
+      STU_PSB_Q_5 == 2 ~ "Eating while watching TV",
+      STU_PSB_Q_5 == 3 ~ "Eating while watching phone",
+      STU_PSB_Q_5 == 4 ~ "Eating while watching tablet",
+      STU_PSB_Q_5 == 5 ~ "General eating behavior",
+      STU_PSB_Q_5 == 6 ~ "Other",
+      TRUE ~ NA_character_
+    ),
+    Meal_Time_Behavior = factor(Meal_Time_Behavior)
+  )
+
+# First create properly labeled variables
+data_set <- data_set %>%
+  mutate(
+    Play_Preference = case_when(
+      STU_PSB_Q_3 == 1 ~ "Alone",
+      STU_PSB_Q_3 == 2 ~ "With phone/tablet",
+      STU_PSB_Q_3 == 3 ~ "With friends",
+      STU_PSB_Q_3 == 4 ~ "With siblings",
+      STU_PSB_Q_3 == 5 ~ "With parents",
+      STU_PSB_Q_3 == 6 ~ "With others",
+      TRUE ~ NA_character_
+    ),
+    Eating_Method = case_when(
+      STU_PSB_Q_4 == 1 ~ "By self",
+      STU_PSB_Q_4 == 2 ~ "Fed by mother",
+      STU_PSB_Q_4 == 3 ~ "Work women",
+      STU_PSB_Q_4 == 4 ~ "Fed by others",
+      TRUE ~ NA_character_
+    ),
+    Socialization_Frequency = case_when(
+      STU_PSB_Q_6 == 1 ~ "Less than twice a week",
+      STU_PSB_Q_6 == 2 ~ "2-3 times a week",
+      STU_PSB_Q_6 == 3 ~ "More than three times",
+      STU_PSB_Q_6 == 4 ~ "Don't go out with friends",
+      TRUE ~ NA_character_
+    )
+  )
+
+
+data_set <- data_set %>%
+  mutate(BMI_Class = recode(BMI_Class,
+    "0" = "Underweight",
+    "1" = "Healthy weight",
+    "2" = "Overweight",
+    "3" = "Obesity",
+    "4" = "Severe obesity"
+  ))
+
+
+data_set <- data_set %>%
+  mutate(
+    child_screen_time_cat = factor(
+      child_screen_time_cat,
+      levels = c(0, 1),
+      labels = c("<4.5 hours/day", "≥4.5 hours/day")
+    )
+)
+
+
+# Ensure both are factors
+data_set$BMI_Class <- as.factor(data_set$BMI_Class)
+data_set$comunity <- as.factor(data_set$comunity)
+
+# Cross-tabulation
+#table_bmi_comunity <- table(data_set$BMI_Class, data_set$comunity)
+#chisq.test(table_bmi_comunity)
+mean(data_set$total_screen_time_PARENT[data_set$comunity == "Periurban"], na.rm = TRUE)
+mean(data_set$total_screen_time_PARENT[data_set$comunity != "Periurban"], na.rm = TRUE)
+
+
+sd(data_set$total_screen_time_PARENT[data_set$comunity == "Periurban"], na.rm = TRUE)
+sd(data_set$total_screen_time_PARENT[data_set$comunity != "Periurban"], na.rm = TRUE)
+```
+
+```{r}
+# your table
+table_out <- data_set %>%
+  select(
+    child_screen_time_cat, SEX_1, child_age_cat, age_father, age_mother,
+    mother_edu_cat, father_edu_cat, father_ocu_cat_recode,
+    mother_ocu_cat_recode, family_income_cat, house_type,
+    no_child,comunity
+  ) %>%
+  tbl_summary(by = child_screen_time_cat) %>%
+  add_p() %>%
+  add_overall()
+
+# convert to gt table
+table_gt <- as_gt(table_out)
+
+# save to Word
+gtsave(table_gt, "screen_time_summary1.docx")
+
+```
+
+
+
+
+```{r}
+
+### Child
+table <- data_set %>%
+  select(total_screen_time_P_hr, comunity) %>%
+  tbl_summary(
+    by = comunity, # Group by this variable
+    statistic = list(all_continuous() ~ "{mean} ({sd})"), # This is where you define mean and SD
+    digits = list(all_continuous() ~ c(2, 2)) # Optional: adjust decimal places for mean and SD
+  ) %>%
+  add_p() %>% # Adds p-value comparing the groups
+  add_overall() # Adds an overall column
+
+table # Print the table
+# Parents
+table1 <- data_set %>%
+  select(total_screen_time_PARENT, comunity) %>%
+  tbl_summary(
+    by = comunity, # Group by this variable
+    statistic = list(all_continuous() ~ "{mean} ({sd})"), # This is where you define mean and SD
+    digits = list(all_continuous() ~ c(2, 2)) # Optional: adjust decimal places for mean and SD
+  ) %>%
+  add_p() %>% # Adds p-value comparing the groups
+  add_overall() # Adds an overall column
+
+table1 # Print the table
+
+
+#### Class label
+library(gtsummary)
+
+# First, create a new combined grouping variable
+data_set <- data_set %>%
+  mutate(community_class = paste(comunity, "-", child_CLAS_label))
+
+# Now create the summary table using the new combined variable
+table3 <- data_set %>%
+  select(total_screen_time_P_hr, community_class) %>%
+  tbl_summary(
+    by = community_class, # Group by the new combined variable
+    statistic = list(all_continuous() ~ "{mean} ({sd})"),
+    digits = list(all_continuous() ~ c(2, 2)),
+    # Use 'label' to give a clear name to the variable in the table
+    label = list(total_screen_time_P_hr ~ "Total Screen Time (hrs)")
+  ) %>%
+  add_overall() %>%  # Adds an overall column
+  # Modify header to specify the new structure
+  modify_header(
+    label ~ "**Variable**",
+    all_stat_cols() ~ "**{level}**<br>N = {n}"
+  )
+
+table3 # Print the table
+
+
+```
+
+
+
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# Calculate the mean screen time for each class and community
+plot_data <- data_set %>%
+  group_by(comunity, child_CLAS_label) %>%
+  summarise(
+    mean_screen = mean(child_screen_time, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Create the bar chart with labels
+ggplot(plot_data, aes(x = child_CLAS_label, y = mean_screen, fill = comunity)) +
+  geom_col(position = position_dodge(width = 0.9), 
+           color = "black", 
+           width = 0.8) +
+  # Add mean value labels on the bars
+  geom_text(aes(label = round(mean_screen, 1)),  # Round to 1 decimal place
+            position = position_dodge(width = 0.9),
+            vjust = -0.5,  # Adjust vertical position (above the bar)
+            size = 3) +
+  scale_fill_manual(values = c("Periurban" = "lightblue", "Urban" = "salmon")) +
+  labs(
+    title = "Mean Daily Screen Time by child Class and Community",
+    x = "Class",
+    y = "Mean Screen Time (hours/day)",
+    fill = "Community"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+
+
+
+```{r}
+
+
+data_set %>%
+  group_by(comunity) %>%
+  summarise(
+    n = n(),
+    mean_age = mean(Child_AGE, na.rm = TRUE),
+    sd_age = sd(Child_AGE, na.rm = TRUE),
+    median_age = median(Child_AGE, na.rm = TRUE),
+    IQR_lower = quantile(Child_AGE, 0.25, na.rm = TRUE),
+    IQR_upper = quantile(Child_AGE, 0.75, na.rm = TRUE)
+  )
+
+
+library(dplyr)
+library(gtsummary)
+
+data_set %>%
+  select(
+    SEX_1, Child_AGE, age_father, age_mother,
+    mother_edu_cat, father_edu_cat,
+    mother_ocu_cat_recode, father_ocu_cat_recode,
+    family_income_cat, famiy_size,
+    lived_current_house, no_child,house_type,comunity
+  ) %>%
+  tbl_summary(
+    by = comunity,
+    missing = "no",
+    statistic = list(
+      all_continuous() ~ "{mean} ({sd})",
+      all_categorical() ~ "{n} ({p}%)"
+    )
+  ) %>%
+  add_overall() %>%   # adds overall column
+  add_p() %>%
+  modify_header(label = "**Characteristic**") %>%
+  bold_labels()
+# t-test
+t_test_result <- t.test(age_mother ~ child_screen_time_cat, data = data_set)
+print(t_test_result)
+
+# Means ± SD for each group
+library(dplyr)
+
+summary_stats <- data_set %>%
+  group_by(child_screen_time_cat) %>%
+  summarise(
+    n = n(),
+    mean_age = mean(age_mother, na.rm = TRUE),
+    sd_age = sd(age_mother, na.rm = TRUE)
+  )
+
+# Combine mean ± SD into one column
+summary_stats <- summary_stats %>%
+  mutate(mean_sd = paste0(round(mean_age, 2), " ± ", round(sd_age, 2)))
+
+summary_stats
+
+
+```
+
+############## DAWBA
+
+```{r}
+
+library(gtsummary)
+library(flextable)
+library(officer)
+
+# --- Dawba Overall ---
+dawba_overall <- data_set %>%
+  select(starts_with("DAW"), child_screen_time_cat) %>%
+  tbl_summary(by = "child_screen_time_cat") %>%
+  add_p() %>%
+  add_overall()
+
+# Convert to flextable
+ft_overall <- as_flex_table(dawba_overall)
+
+# Save to Word
+doc <- read_docx()
+doc <- body_add_flextable(doc, ft_overall)
+print(doc, target = "dawba_overall.docx")
+
+# Dawba Periurban
+dawba_periurban <- data_set %>%
+  filter(comunity == "Periurban") %>%
+  select(starts_with("DAW"), child_screen_time_cat) %>%
+  tbl_summary(by = "child_screen_time_cat") %>%
+  add_p() %>%
+  add_overall()
+
+ft_periurban <- as_flex_table(dawba_periurban)
+doc <- read_docx()
+doc <- body_add_flextable(doc, ft_periurban)
+print(doc, target = "dawba_periurban.docx")
+
+# Dawba Urban
+dawba_urban <- data_set %>%
+  filter(comunity == "Urban") %>%
+  select(starts_with("DAW"), child_screen_time_cat) %>%
+  tbl_summary(by = "child_screen_time_cat") %>%
+  add_p() %>%
+  add_overall()
+
+ft_urban <- as_flex_table(dawba_urban)
+doc <- read_docx()
+doc <- body_add_flextable(doc, ft_urban)
+print(doc, target = "dawba_urban.docx")
+
+
+```
+
+```{r}
+## COvariate check of DAWBA
+table_out1 <- data_set %>%
+  select(
+    child_screen_time_cat, SEX_1, child_age_cat, age_father, age_mother,
+    mother_edu_cat, father_edu_cat, father_ocu_cat_recode,
+    mother_ocu_cat_recode, family_income_cat,
+    famiy_size, no_child,comunity,total_DAWBA_score_cat
+  ) %>%
+  tbl_summary(by = total_DAWBA_score_cat) %>%
+  add_p() %>%
+  add_overall()
+
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "Dawba_over_all.docx")
+
+```
+
+
+
+```{r}
+
+
+### DAWBA Total SCORE OVERALL
+table_out1<-data_set %>% select(total_DAWBA_score_cat,child_screen_time_cat) %>%tbl_summary(by=child_screen_time_cat) %>% add_p() %>% add_overall()
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "Dawba_over_all1.docx")
+
+### DAWBA Total SCORE comunity == "Periurban"
+table_out1<-data_set %>%filter(comunity == "Periurban") %>%  select(total_DAWBA_score_cat,child_screen_time_cat) %>%tbl_summary(by=child_screen_time_cat) %>% add_p() %>% add_overall()
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "Dawba_over_all2.docx")
+
+
+
+### DAWBA Total SCORE comunity == "Urban"
+table_out1<-data_set %>%filter(comunity == "Urban") %>%  select(total_DAWBA_score_cat,child_screen_time_cat) %>%tbl_summary(by=child_screen_time_cat) %>% add_p() %>% add_overall()
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "Dawba_over_all3.docx")
+
+```
+
+
+
+
+```{r}
+library(nnet)
+library(gtsummary)
+# Let R handle level assignment (removes duplicates)
+data_set$total_DAWBA_score_cat <- as.factor(data_set$total_DAWBA_score_cat)
+# First ensure your dependent variable is properly formatted
+data_set$total_DAWBA_score_cat <- factor(
+  data_set$total_DAWBA_score_cat,
+  levels = c("No problem", 
+             "At least one problem exists", 
+             "More than one problem exists"),
+  ordered = FALSE  # multinom() needs unordered factor
+)
+
+library(nnet)
+library(gtsummary)
+
+# Model 1
+model1 <- multinom(total_DAWBA_score_cat ~ child_screen_time_cat, data = data_set)
+
+# Model 2
+model2 <- multinom(total_DAWBA_score_cat ~ child_screen_time_cat + comunity +
+                   SEX_1 + age_father + age_mother + mother_edu_cat +
+                   father_ocu_cat_recode + family_income_cat + famiy_size,
+                 data = data_set)
+
+tbl_unadjusted <- tbl_regression(
+  model1,
+  exponentiate = TRUE,
+  label = list(child_screen_time_cat ~ "Screen time (minutes)")
+)
+
+tbl_adjusted <- tbl_regression(
+  model2,
+  exponentiate = TRUE,
+  label = list(
+    child_screen_time_cat ~ "Screen time (minutes)",
+    comunity ~ "Community",
+    SEX_1 ~ "Sex",
+    age_father ~ "Father age",
+    age_mother ~ "Mother age",
+    mother_edu_cat ~ "Mother’s education",
+    father_ocu_cat_recode ~ "Father’s occupation",
+    family_income_cat ~ "Family income",
+    famiy_size ~ "Family size"
+  )
+)
+tbl_both <- tbl_merge(
+  list(tbl_unadjusted, tbl_adjusted),
+  tab_spanner = c("**Unadjusted Model**", "**Adjusted Model**")
+) %>%
+  modify_caption("**Table X. Multinomial Logistic Regression of Behavioral Problems Categories**")
+
+```
+
+
+
+```{r}
+
+                    +  + 
+##Dawba Unadjusted Model
+
+#library(gtsummary)
+
+predictors <- c("child_screen_time_cat", "comunity","SEX_1","age_father","age_mother",
+                "mother_edu_cat","father_ocu_cat_recode", "family_income_cat","famiy_size")
+
+# Create list of regression tables instead of raw models
+Unadjusted_tbls <- lapply(predictors, function(var) {
+  formula <- as.formula(paste("total_DAWBA_score_cat ~", var))
+  model <- multinom(formula, data = data_set, family = binomial)
+  tbl_regression(model, exponentiate = TRUE) # ORs instead of log-odds
+})
+
+# Give names to each table
+names(Unadjusted_tbls) <- predictors
+
+# Merge all into one table
+final_table <- tbl_merge(
+  tbls = Unadjusted_tbls,
+  tab_spanner = paste("Model for", predictors)
+)
+
+
+
+
+
+```
+
+
+############# DAWBA COMPLETE
+
+
+
+#### SDQ
+
+
+### SDQ
+
+```{r}
+# Calculate Total Difficulties Score (TDS)
+data_set$SDQ_TD <- data_set$SDQ_Emo_Pr_Sc + data_set$SDQ_Con_Pro_Sc + data_set$SDQ_Hyp_Act_Sc + data_set$SDQ_Peer_Pro_Sc+data_set$SDQ_Pro_Soc_Sc
+### SDQ  Total Score 
+
+
+
+
+data_set <- data_set %>%
+  mutate(
+    SDQ_category = case_when(
+      SDQ_TD <= 15 ~ "Normal",
+      SDQ_TD>= 16 ~ "Borderline/Abnormal",
+      TRUE ~ NA_character_
+    ),
+    SDQ_category = factor(SDQ_category, levels = c("Normal", "Borderline/Abnormal"))
+  )
+
+
+### Association SDQ with Others Variables
+
+
+
+
+
+# Summary Table for SDQ by child screen time category
+table_out1<-data_set %>% select(SDQ_category,Emotion_pro_cat, Conduct_pro_cat,Hyperactivity_pro_cat,Peer_pro_cat,Prosocial_pro_cat,,child_screen_time_cat) %>% tbl_summary(by=child_screen_time_cat) %>% add_p() %>% add_overall()
+
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "SDQ_all.docx")
+
+
+
+# Summary Table for SDQ comunity == "Periurban"
+table_out1<-data_set %>%filter(comunity == "Periurban") %>%  select(SDQ_category,Emotion_pro_cat, Conduct_pro_cat,Hyperactivity_pro_cat,Peer_pro_cat,Prosocial_pro_cat,,child_screen_time_cat) %>% tbl_summary(by=child_screen_time_cat) %>% add_p() %>% add_overall()
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "SDQ_Periurban.docx")
+
+# Summary Table for SDQ comunity == "Urban"
+
+table_out1<-data_set %>%filter(comunity == "Urban") %>% select(SDQ_category,Emotion_pro_cat, Conduct_pro_cat,Hyperactivity_pro_cat,Peer_pro_cat,Prosocial_pro_cat,,child_screen_time_cat) %>% tbl_summary(by=child_screen_time_cat) %>% add_p() %>% add_overall()
+
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "SDQ_over_urban.docx")
+```
+
+
+```{r}
+library(haven)
+
+# Example: export dataframe 'mydata' to SPSS format
+write_sav(data_set, "data_spss.sav")
+```
+
+
+
+
+
+
+############# CHeck Regression model Outcome variable
+
+```{r}
+
+
+# Create summary table with p-values SDQ
+table_out1 <- data_set %>%
+  select(
+    child_screen_time_cat, SEX_1, child_age_cat, age_father, age_mother,
+    mother_edu_cat, father_edu_cat, father_ocu_cat_recode,
+    mother_ocu_cat_recode, family_income_cat,
+    famiy_size, no_child,comunity,SDQ_category
+  ) %>%
+  tbl_summary(by = SDQ_category) %>%
+  add_p() 
+
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "SDQ_COVARIATE.docx")
+
+
+
+
+
+```
+
+
+
+
+```{r}
+
+#data_set<-factor(data_set$SDQ_category)
+
+data_set$SDQ_category <- as.factor(data_set$SDQ_category)
+###Create a binary variable in your dataset
+data_set$SDQ_binary <- ifelse(data_set$SDQ_category == "Normal", 0, 1)
+#table(data_set$SDQ_binary)
+
+library(gtsummary)
+
+# Unadjusted model for child_screen_time_cat only(SDQ)
+Unadjusted_model <- glm(SDQ_binary ~ child_screen_time_cat,
+                        data = data_set, family = binomial)
+
+# Adjusted model
+Adjusted_model <- glm(SDQ_binary ~ child_screen_time_cat + comunity + child_age_cat +SEX_1+child_age_cat+age_mother+
+                         mother_edu_cat +father_edu_cat+ mother_ocu_cat_recode +
+                        father_edu_cat+family_income_cat ,
+                      data = data_set, family = binomial)
+
+# Create side-by-side table
+tbl_merged <- tbl_merge(
+  list(
+    tbl_regression(Unadjusted_model,
+                   exponentiate = TRUE,
+                   label = list(child_screen_time_cat ~ "Screen time category")) %>%
+      bold_labels() %>%
+      bold_p(t = 0.1) %>%
+      modify_header(estimate ~ "**Crude OR**"),
+    
+    tbl_regression(Adjusted_model,
+                   exponentiate = TRUE,
+                   label = list(child_screen_time_cat ~ "Screen time category")) %>%
+      bold_labels() %>%
+      bold_p(t = 0.1) %>%
+      modify_header(estimate ~ "**Adjusted OR**")
+  ),
+  tab_spanner = c("**Model 1** (Unadjusted)", 
+                  "**Model 2** (Adjusted)")
+)
+
+tbl_merged
+# convert gtsummary object to a gt table
+tbl_merged %>%
+  as_flex_table() %>%
+  flextable::save_as_docx(path = "SDQ_Ad_UnAd.docx")
+
+```
+
+
+
+
+
+```{r}
+
+
+
+
+## SDQ Unadjusted Model
+
+library(gtsummary)
+
+predictors <- c("child_screen_time_cat", "comunity", "child_age_cat","SEX_1","child_age_cat","age_mother",
+                "mother_edu_cat","father_edu_cat", "mother_ocu_cat_recode","family_income_cat")
+
+# Create list of regression tables instead of raw models
+Unadjusted_tbls <- lapply(predictors, function(var) {
+  formula <- as.formula(paste("SDQ_binary ~", var))
+  model <- glm(formula, data = data_set, family = binomial)
+  tbl_regression(model, exponentiate = TRUE) # ORs instead of log-odds
+})
+
+# Give names to each table
+names(Unadjusted_tbls) <- predictors
+
+# Merge all into one table
+final_table <- tbl_merge(
+  tbls = Unadjusted_tbls,
+  tab_spanner = paste("Model for", predictors)
+)
+
+
+
+
+
+```
+
+
+
+
+########## SDQ COMPLETE
+
+
+############ SCAS
+
+
+
+
+
+```{r}
+
+
+data_set$scas_t_range <- ifelse(data_set$SCAS_T_SCORE_total < 40.5, 0, 1)
+
+
+#### SCAS by CHild Screen time category
+table_out1<-data_set %>% select(SCAS_T_SCORE_gen_anxiety_cat,SCAS_T_SCORE_obsessive_cat,SCAS_T_SCORE_panic_cat,SCAS_T_SCORE_physical_cat,SCAS_T_SCORE_separation_cat,SCAS_T_SCORE_social_cat,scas_t_range,child_screen_time_cat) %>% tbl_summary(by=child_screen_time_cat) %>% add_p() %>% add_overall()
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "SCAS_all.docx")
+
+
+
+# Summary Table for SDQ comunity == "Periurban"
+table_out1<-data_set %>%filter(comunity == "Periurban") %>%  select(SCAS_T_SCORE_gen_anxiety_cat,SCAS_T_SCORE_obsessive_cat,SCAS_T_SCORE_panic_cat,SCAS_T_SCORE_physical_cat,SCAS_T_SCORE_separation_cat,SCAS_T_SCORE_social_cat,scas_t_range,child_screen_time_cat) %>% tbl_summary(by=child_screen_time_cat) %>% add_p() %>% add_overall()
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "SCAS_Periurban.docx")
+
+# Summary Table for SDQ comunity == "Urban"
+table_out1<-data_set %>%filter(comunity == "Urban") %>% select(SCAS_T_SCORE_gen_anxiety_cat,SCAS_T_SCORE_obsessive_cat,SCAS_T_SCORE_panic_cat,SCAS_T_SCORE_physical_cat,SCAS_T_SCORE_separation_cat,SCAS_T_SCORE_social_cat,scas_t_range,child_screen_time_cat) %>% tbl_summary(by=child_screen_time_cat) %>% add_p() %>% add_overall()
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "SCAS_Urban.docx")
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+############# CHeck Regression model Outcome variable
+
+```{r}
+
+
+
+
+
+# Create summary table with p-values SDQ
+table_out1 <- data_set %>%
+  select(
+    child_screen_time_cat, SEX_1, child_age_cat, age_father, age_mother,
+    mother_edu_cat, father_edu_cat, father_ocu_cat_recode,
+    mother_ocu_cat_recode, family_income_cat,
+    famiy_size, no_child,comunity,scas_t_range
+  ) %>%
+  tbl_summary(by = scas_t_range) %>%
+  add_p() 
+
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "SCAS_COVARIATE.docx")
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+
+
+###Create a binary variable in your dataset
+#data_set$SCAS_T_SCORE <- ifelse(data_set$SCAS_T_SCORE_total_range == 59, 0, 1)
+#table(data_set$SDQ_binary)
+
+library(gtsummary)
+
+# Unadjusted model for child_screen_time_cat only(SCAS)
+Unadjusted_model <- glm(scas_t_range ~ child_screen_time_cat,
+                        data = data_set, family = binomial)
+
+# Adjusted model
+Adjusted_model <- glm(scas_t_range ~ child_screen_time_cat + comunity + SEX_1 +father_edu_cat+no_child
+                         ,
+                      data = data_set, family = binomial)
+
+# Create side-by-side table
+tbl_merged <- tbl_merge(
+  list(
+    tbl_regression(Unadjusted_model,
+                   exponentiate = TRUE,
+                   label = list(child_screen_time_cat ~ "Screen time category")) %>%
+      bold_labels() %>%
+      bold_p(t = 0.1) %>%
+      modify_header(estimate ~ "**Crude OR**"),
+    
+    tbl_regression(Adjusted_model,
+                   exponentiate = TRUE,
+                   label = list(child_screen_time_cat ~ "Screen time category")) %>%
+      bold_labels() %>%
+      bold_p(t = 0.1) %>%
+      modify_header(estimate ~ "**Adjusted OR**")
+  ),
+  tab_spanner = c("**Model 1** (Unadjusted)", 
+                  "**Model 2** (Adjusted)")
+)
+
+tbl_merged
+# convert gtsummary object to a gt table
+tbl_merged %>%
+  as_flex_table() %>%
+  flextable::save_as_docx(path = "SCAS_Ad_UnAd.docx")
+
+```
+
+
+
+
+
+```{r}
+
+
+
+## SCAS Unadjusted Model
+
+library(gtsummary)
+
+predictors <- c("child_screen_time_cat", "comunity","SEX_1",
+                "father_edu_cat","no_child")
+
+# Create list of regression tables instead of raw models
+Unadjusted_tbls <- lapply(predictors, function(var) {
+  formula <- as.formula(paste("scas_t_range ~", var))
+  model <- glm(formula, data = data_set, family = binomial)
+  tbl_regression(model, exponentiate = TRUE) # ORs instead of log-odds
+})
+
+# Give names to each table
+names(Unadjusted_tbls) <- predictors
+
+# Merge all into one table
+final_table <- tbl_merge(
+  tbls = Unadjusted_tbls,
+  tab_spanner = paste("Model for", predictors)
+)
+
+
+
+
+
+```
+
+
+
+
+##### PSQI
+
+
+
+```{r}
+# Create summary table   Child Screen time 
+psqi_tbl <- data_set %>%
+  select(PSQI_Global_PSQI_score_cat,PSQI_COMP_1, PSQI_COMP_2, PSQI_COMP_3, 
+         PSQI_COMP_4, PSQI_COMP_5, PSQI_COMP_6, 
+         PSQI_COMP_7, child_screen_time_cat) %>%
+  tbl_summary(by = "child_screen_time_cat") %>%
+  add_p() %>%
+  add_overall()
+
+# Convert to flextable and save as Word docx
+psqi_tbl %>%
+  as_flex_table() %>%
+  save_as_docx(path = "psqi_all.docx")
+
+
+
+
+
+# Create summary table   Child Screen time 
+psqi_tbl <- data_set %>%filter(comunity == "Periurban") %>% 
+  select(PSQI_Global_PSQI_score_cat,PSQI_COMP_1, PSQI_COMP_2, PSQI_COMP_3, 
+         PSQI_COMP_4, PSQI_COMP_5, PSQI_COMP_6, 
+         PSQI_COMP_7, child_screen_time_cat) %>%
+  tbl_summary(by = "child_screen_time_cat") %>%
+  add_p() %>%
+  add_overall()
+
+# Convert to flextable and save as Word docx
+psqi_tbl %>%
+  as_flex_table() %>%
+  save_as_docx(path = "psqi_Periurban.docx")
+
+# Create summary table   Child Screen time 
+psqi_tbl <- data_set %>%filter(comunity == "Urban") %>% 
+  select(PSQI_Global_PSQI_score_cat,PSQI_COMP_1, PSQI_COMP_2, PSQI_COMP_3, 
+         PSQI_COMP_4, PSQI_COMP_5, PSQI_COMP_6, 
+         PSQI_COMP_7, child_screen_time_cat) %>%
+  tbl_summary(by = "child_screen_time_cat") %>%
+  add_p() %>%
+  add_overall()
+
+# Convert to flextable and save as Word docx
+psqi_tbl %>%
+  as_flex_table() %>%
+  save_as_docx(path = "Urban.docx")
+
+
+```
+
+
+
+
+
+
+############# CHeck Regression model Outcome variable
+
+```{r}
+
+
+
+
+
+# Create summary table with p-values SDQ
+table_out1 <- data_set %>%
+  select(
+    child_screen_time_cat, SEX_1, child_age_cat, age_father, age_mother,
+    mother_edu_cat, father_edu_cat, father_ocu_cat_recode,
+    mother_ocu_cat_recode, family_income_cat,
+    famiy_size, no_child,comunity,PSQI_Global_PSQI_score_cat
+  ) %>%
+  tbl_summary(by = PSQI_Global_PSQI_score_cat) %>%
+  add_p() 
+
+# convert to gt table
+table_gt <- as_gt(table_out1)
+
+# save to Word
+gtsave(table_gt, "PSQI_COVARIATE.docx")
+
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+## Sleep Quality (PSQI_Global_PSQI_score_cat)
+
+
+data_set$ PSQI_Global_PSQI_score_cat<- as.factor(data_set$PSQI_Global_PSQI_score_cat)
+###Create a binary variable in your dataset
+data_set$PSQI_cat_binary <- ifelse(data_set$PSQI_Global_PSQI_score_cat == 0, 0, 1)
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+# Unadjusted model for child_screen_time_cat only(PSQI)
+Unadjusted_model <- glm(PSQI_cat_binary ~ child_screen_time_cat,
+                        data = data_set)
+
+
+tbl_regression(Unadjusted_model)
+# Adjusted model
+Adjusted_model <- glm(PSQI_cat_binary ~ child_screen_time_cat + comunity  +
+                        age_father + mother_edu_cat + father_edu_cat +
+                        + father_ocu_cat_recode + family_income_cat+no_child,
+                      data = data_set)
+
+
+# Create side-by-side table
+tbl_merged <- tbl_merge(
+  list(
+    tbl_regression(Unadjusted_model,
+                   exponentiate = TRUE,
+                   label = list(child_screen_time_cat ~ "Screen time category")) %>%
+      bold_labels() %>%
+      bold_p(t = 0.1) %>%
+      modify_header(estimate ~ "**Crude OR**"),
+    
+    tbl_regression(Adjusted_model,
+                   exponentiate = TRUE,
+                   label = list(child_screen_time_cat ~ "Screen time category")) %>%
+      bold_labels() %>%
+      bold_p(t = 0.1) %>%
+      modify_header(estimate ~ "**Adjusted OR**")
+  ),
+  tab_spanner = c("**Model 1** (Unadjusted)", 
+                  "**Model 2** (Adjusted)")
+)
+
+
+
+tbl_merged
+# convert gtsummary object to a gt table
+tbl_merged %>%
+  as_flex_table() %>%
+  flextable::save_as_docx(path = "PSQI_Ad_UnAd1.docx")
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+
+ child_screen_time_cat + comunity  +
+                        age_father + mother_edu_cat + father_edu_cat +
+                        + father_ocu_cat_recode + family_income_cat+no_child,
+
+
+# Unadjusted model for child_screen_time_cat only(PSQI)
+Unadjusted_model <- glm(PSQI_cat_binary ~ no_child,
+                        data = data_set)
+
+
+tbl_regression(Unadjusted_model)
+
+```
+
+
+
+
+
+```{r}
+
+# Basic log transform (natural log)
+data_set$log_SCAS_T_SCORE_total_log <- log10(data_set$SCAS_T_SCORE_total)
+
+hist(data_set$log_SCAS_T_SCORE_total_log)
+shapiro.test(data_set$log_SCAS_T_SCORE_total_log)
+
+
+```
+
+
+```{r}
+#### CO variate check for log_SCAS_T_SCORE_total_log
+
+data_set %>% select(child_screen_time_cat, comunity, child_age_cat,
+                        child_CLAS_label,mother_edu_cat,mother_ocu_cat_recode,father_edu_cat,father_ocu_cat_recode) %>% tbl_summary()
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+data_set %>% select(screen_use_keep_busy,screen_use_calm_child,screen_use_reward,screen_use_educational,screen_use_parent_free,watch_tv_with_child,watch_entertainment_video,edu_laptop_with_child,game_smartphone_with_child,eat_meals_together,play_sports_together,attend_social_events,read_books_together,PAR_Q_34,PAR_Q_35,PAR_Q_36,PAR_Q_37,PAR_Q_38,comunity) %>% tbl_summary(by = "comunity")%>% add_p() 
+
+```
+
+
+```{r}
+
+
+# Optional: Create combined table by community
+combined_table <- data_set %>%
+  select(Play_Preference, Eating_Method, Socialization_Frequency,Meal_Time_Behavior,Anger_Reason,Feel_Happy, comunity) %>%
+  tbl_summary(
+    by = "comunity",
+    statistic = list(all_categorical() ~ "{n} ({p}%)"),
+    missing = "no"
+  ) %>%
+  add_p() %>%
+  modify_header(
+    stat_1 ~ "**Periurban**\nN = {n}",
+    stat_2 ~ "**Urban**\nN = {n}"
+  ) %>%
+  bold_labels() %>%
+  modify_caption("**Table 4. Behavioral Characteristics by Community**") %>% add_overall()
+
+# Save to Word
+gtsummary::as_gt(combined_table) %>% gt::gtsave("combined_table.docx")
+
+
+```
+
+
+
+
+```{r}
+
+
+data_set %>% select(Food_Context_Reason,Anger_Reason,PSB_Happy,STU_PSB_Q_3, STU_PSB_Q_4, STU_PSB_Q_6,comunity) %>% tbl_summary(by="comunity")
+```
+
+
+
+
+```{r}
+# Summary Table for SCAS
+data_set %>% select(SCAS_T_SCORE_panic_cat, SCAS_T_SCORE_separation_cat, SCAS_T_SCORE_physical_cat, SCAS_T_SCORE_social_cat, SCAS_T_SCORE_obsessive_cat, SCAS_T_SCORE_gen_anxiety_cat,comunity) %>%tbl_summary(by=comunity) %>% add_p() 
+```
+
+
+### Total screen time of child
+total_screen_time_P_hr
+
+
+### Total Screen time of parent
+total_screen_time_PARENT
+
+
+
+
+
+
+
+
+
+```{r}
+# Digital Screen  of use child
+
+data_set %>% select(STU_Q_1_TV, STU_Q_1_MOB, STU_Q_1_TAB, STU_Q_1_LAP ,STU_Q_1_COM,comunity) %>% tbl_summary(by="comunity") %>%add_p() %>% add_overall()
+
+```
+
+```{r}
+library(tidyverse)
+
+data <- tibble(
+  Device = rep(c("TV", "Smartphone", "Tablet", "Laptop", "Computer"), each = 4),
+  Area = rep(rep(c("Periurban", "Urban"), each = 2), times = 5),
+  Ownership = rep(c("No", "Yes"), times = 10),
+  Count = c(26, 184, 4, 206,    # TV
+            26, 184, 1, 209,     # Smartphone
+            193, 17, 117, 93,    # Tablet
+            158, 52, 48, 162,    # Laptop
+            180, 30, 122, 88),   # Computer
+  Percent = c(12, 88, 1.9, 98,   # TV
+              12, 88, 0.5, 100,  # Smartphone
+              92, 8.1, 56, 44,   # Tablet
+              75, 25, 23, 77,    # Laptop
+              86, 14, 58, 42)    # Computer
+)
+
+
+plot <-ggplot(data %>% filter(Ownership == "Yes"), 
+       aes(x = Device, y = Percent, fill = Area)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7) +
+  geom_text(aes(label = paste0(Percent, "%")), 
+            position = position_dodge(width = 0.8), vjust = -0.5, size = 3.5) +
+  labs(
+    title = "Parental Ownership of Digital Devices: A Comparison of Periurban and Urban Areas",
+    x = "Device",
+    y = "Percentage of Households Owning Device (%)",
+    fill = "Area"
+  ) +
+  scale_fill_manual(values = c("Periurban" = "#1f77b4", "Urban" = "#ff7f0e")) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+# Save the plot to your computer
+ggsave("device_ownership_plot.png", 
+       plot = plot, 
+       device = "png",
+       width = 10,   # Width in inches
+       height = 6,   # Height in inches
+       dpi = 300)    # High resolution for publications
+```
+
+```{r}
+
+data_set<-data_set %>% mutate(total_screen_tim_H_par=total_screen_time_min_par/60)
+
+
+
+
+```
+
+```{r}
+data_set$MOB_total_hrs <- data_set$STU_Q_1_MOB_D_HR + (data_set$STU_Q_1_MOB_D_MB / 60)
+data_set$TAB_total_hrs <- data_set$STU_Q_1_TAB_D_HR + (data_set$STU_Q_1_TAB_D_MN / 60)
+data_set$LAP_total_hrs <- data_set$STU_Q_1_LAP_D_HR + (data_set$STU_Q_1_LAP_D_MN / 60)
+data_set$COM_total_hrs <- data_set$STU_Q_1_COM_D_HR + (data_set$STU_Q_1_COM_D_MN / 60)
+data_set$GAM_total_hrs <- data_set$STU_Q_1_GAM_D_HR + (data_set$STU_Q_1_GAM_D_MN / 60)
+```
+
+```{r}
+data_set$MOB_time_category <- cut(data_set$MOB_total_hrs, breaks = c(0, 2, 4, 6, Inf), labels = c("<2 Hours", "2-4 Hours", ">4-6 Hours", ">6 Hours"), right = FALSE, include.lowest = TRUE)
+data_set$TAB_time_category <- cut(data_set$TAB_total_hrs, breaks = c(0, 2, 4, 6, Inf), labels = c("<2 Hours", "2-4 Hours", ">4-6 Hours", ">6 Hours"), right = FALSE, include.lowest = TRUE)
+data_set$LAP_time_category <- cut(data_set$LAP_total_hrs, breaks = c(0, 2, 4, 6, Inf), labels = c("<2 Hours", "2-4 Hours", ">4-6 Hours", ">6 Hours"), right = FALSE, include.lowest = TRUE)
+data_set$COM_time_category <- cut(data_set$COM_total_hrs, breaks = c(0, 2, 4, 6, Inf), labels = c("<2 Hours", "2-4 Hours", ">4-6 Hours", ">6 Hours"), right = FALSE, include.lowest = TRUE)
+data_set$GAM_time_category <- cut(data_set$GAM_total_hrs, breaks = c(0, 2, 4, 6, Inf), labels = c("<2 Hours", "2-4 Hours", ">4-6 Hours", ">6 Hours"), right = FALSE, include.lowest = TRUE)
+```
+
+```{r}
+# Histogram with density curve
+ggplot(data_set, aes(x = total_screen_time_ho_child)) +
+  geom_histogram(aes(y = ..density..), bins = 20, fill = "skyblue", color = "black") +
+  geom_density(color = "red", linewidth = 1) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(data_set$total_screen_time_ho_child, na.rm = TRUE), 
+                            sd = sd(data_set$total_screen_time_ho_child, na.rm = TRUE)), 
+                color = "darkgreen", linewidth = 1, linetype = "dashed") +
+  labs(title = "Distribution of PSQI Global Score", 
+       x = "PSQI Score", 
+       y = "Density") +
+  theme_minimal()
+```
+
+```{r}
+## Not Use 
+t.test(
+  total_screen_time_ho_child ~ comunity,
+  data = data_set,
+  var.equal = TRUE  # Assume equal variances (check with Levene's test)
+)
+```
+
+```{r}
+shapiro.test(data_set$total_screen_time_ho_child)
+```
+
+```{r}
+# Child Screen device (category)
+
+data_set %>% select(MOB_time_category,TAB_time_category,LAP_time_category,COM_time_category,GAM_time_category,comunity) %>% tbl_summary(by="comunity") %>% add_p() %>% add_overall()
+```
+
+
+
+
+```{r}
+# Load ggplot2 for better graphics (if not installed: install.packages("ggplot2"))
+library(ggplot2)
+
+# Histogram with density curve
+ggplot(data_set, aes(x = PSQI_Global_PSQI_score)) +
+  geom_histogram(aes(y = ..density..), bins = 20, fill = "skyblue", color = "black") +
+  geom_density(color = "red", linewidth = 1) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(data_set$PSQI_Global_PSQI_score, na.rm = TRUE), 
+                            sd = sd(data_set$PSQI_Global_PSQI_score, na.rm = TRUE)), 
+                color = "darkgreen", linewidth = 1, linetype = "dashed") +
+  labs(title = "Distribution of PSQI Global Score", 
+       x = "PSQI Score", 
+       y = "Density") +
+  theme_minimal()
+```
+
+```{r}
+shapiro.test(data_set$PSQI_Global_PSQI_score)
+```
+
+```{r}
+summary(data_set$Child_AGE)
+summary(data_set$total_screen_time_P_hr)
+
+cor.test(data_set$Child_AGE, data_set$total_screen_time_P_hr, method = "pearson")
+```
+
+
+```{r}
+### Child Age & Child Screen time
+corr.test(data_set$Child_AGE,data_set$total_screen_time_P_hr)
+plot(data_set$Child_AGE, data_set$total_screen_time_P_hr,
+     xlab = "Child Age (years)", ylab = "Child Screen Time (hours)",
+     main = "Age vs. Screen Time",
+     pch = 16, col = "blue")
+abline(lm(total_screen_time_P_hr ~ Child_AGE, data = data_set), col = "red")
+
+```
+
+
+
+
+```{r}
+# Make sure BMI_Class and comunity are factors
+data_set$BMI_Class <- as.factor(data_set$BMI_Class)
+data_set$comunity <- as.factor(data_set$comunity)
+
+# Cross-tabulation
+table_BMI_comunity <- table(data_set$BMI_Class, data_set$comunity)
+chisq.test(table_BMI_comunity)
+
+```
+
+
+```{r}
+# Boxplot for Periurban only
+boxplot(total_screen_time_P_hr ~ BMI_Class, data = subset(data_set, comunity == "Periurban"))
+
+# One-way ANOVA for Periurban only
+anova_result <- aov(total_screen_time_P_hr ~ BMI_Class, data = subset(data_set, comunity == "Periurban"))
+summary(anova_result)
+
+```
+
+
+
+```{r}
+# Boxplot for Periurban only
+boxplot(total_screen_time_P_hr ~ BMI_Class, data = subset(data_set, comunity != "Periurban"))
+
+# One-way ANOVA for Periurban only
+anova_result <- aov(total_screen_time_P_hr ~ BMI_Class, data = subset(data_set, comunity != "Periurban"))
+summary(anova_result)
+```
+
+```{r}
+### PHYSICAL
+tbl<-data_set %>% select(STU_PS_Q_1 ,STU_PS_Q_2, STU_PS_Q_3, STU_PS_Q_4, STU_PS_Q_5, STU_PS_Q_6 ,STU_PS_Q_7, STU_PS_Q_8, STU_PS_Q_9, STU_PS_Q_10 ,STU_PS_Q_11, STU_PS_Q_12, STU_PS_Q_13 ,comunity) %>% tbl_summary(by="comunity") %>% add_p()
+as_gt(tbl) %>% gt::gtsave("physical_symptoms_table.docx")
+
+```
+
+
+
+```{r}
+# Check distribution
+boxplot(total_screen_time_P_hr ~ BMI_Class, data = data_set)
+
+# One-way ANOVA
+anova_result <- aov(total_screen_time_P_hr ~ BMI_Class, data = data_set)
+summary(anova_result)
+
+
+
+```
+
+```{r}
+#attach(data_set)
+
+####### HAve Any correlation Child Screen time & Parent screen time 
+cor.test(data_set$total_screen_time_PARENT,data_set$total_screen_time_P_hr)
+
+```
+
+```{r}
+# Assuming your data is in a dataframe called 'data_set'
+ggplot(data = data.frame(total_screen_time_P_hr = data_set$total_screen_time_P_hr,
+                         total_screen_time_PARENT = data_set$total_screen_time_PARENT),
+       aes(x = total_screen_time_P_hr, y = total_screen_time_PARENT)) +
+  geom_point(alpha = 0.6, color = "blue") +
+  geom_smooth(method = "lm", se = TRUE, color = "red") +
+  labs(
+    title = "Correlation Between Child and Parent Screen Time",
+    x = "Child Screen Time (hours)",
+    y = "Parent Screen Time (hours)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+library(ggplot2)
+
+# Using your dataframe 'data_set'
+ggplot(data = data_set, 
+       aes(x = total_screen_time_P_hr, 
+           y = total_screen_time_PARENT)) +
+  
+  # Customize points (purple points with black outline)
+  geom_point(alpha = 0.7, 
+             color = "black",        # Outline color
+             fill = "#6A0DAD",       # Fill color (purple)
+             shape = 21,             # Shape 21 allows fill+outline
+             size = 3) +             # Larger points
+  
+  # Regression line (teal with 95% CI)
+  geom_smooth(method = "lm", 
+              se = TRUE, 
+              color = "#008080",     # Teal regression line
+              fill = "#20B2AA") +    # Light teal for CI
+  
+  # Titles and labels (customized)
+  labs(
+    title = "Parent vs. Child Screen Time (Hours/Day)",
+    subtitle = "Positive Correlation (r = 0.33)",
+    x = "Child Screen Time (hours)",
+    y = "Parent Screen Time (hours)",
+    #caption = "Data: Your Dataset | n = 420"
+  ) +
+  
+  # Modern theme with grid lines
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40"),
+    panel.grid.minor = element_blank()
+  )
+```
+#Screen Time Differences (T-test)
+
+```{r}
+t.test(total_screen_time_P_hr ~ comunity, data = data_set) 
+```
+
+```{r}
+# Create summary table with screen time + physical symptoms
+table_symptoms <- data_set %>%
+  select(
+    comunity,
+    total_screen_time_P_hr,
+    STU_PS_Q_1 ,STU_PS_Q_2, STU_PS_Q_3, STU_PS_Q_4, STU_PS_Q_5, STU_PS_Q_6 ,STU_PS_Q_7, STU_PS_Q_8, STU_PS_Q_9, STU_PS_Q_10 ,STU_PS_Q_11, STU_PS_Q_12, STU_PS_Q_13
+  ) %>%
+  tbl_summary(
+    by = comunity,
+    statistic = list(
+      total_screen_time_P_hr ~ "{median} ({p25}, {p75})",  # Median (IQR) for screen time
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) %>%
+  add_p(
+    test = list(
+      total_screen_time_P_hr ~ "wilcox.test",  # Mann–Whitney
+      all_categorical() ~ "chisq.test"    # Chi-square
+    )
+  ) %>%
+  modify_header(label = "**Characteristic**") %>%
+  bold_labels()
+
+# Show table
+table_symptoms
+```
+
+
+
+
+
+```{r}
+library(ggplot2)
+ggplot(data_set, aes(x = total_screen_time_P_hr, y = SCAS_total_score, color = community)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE) +
+  scale_color_manual(values = c("Periurban" = "#E69F00", "Urban" = "#56B4E9")) +
+  labs(
+    title = "Anxiety Scores by Screen Time and Community",
+    x = "Daily Screen Time (hours)",
+    y = "SCAS Total Score",
+    color = "Community"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Fit model
+model <- lm(SCAS_total_score ~ total_screen_time_P_hr + community, data = data_set)
+
+# Create publication-ready table
+tbl_regression(model, intercept = TRUE) %>%
+  add_glance_source_note(include = c(r.squared, adj.r.squared, sigma, p.value)) %>%
+  modify_caption("**Table 1. Linear Regression: Screen Time and Community Predict Anxiety**") %>%
+  bold_p(t = 0.05) %>%
+  italicize_levels()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+### SCAS
+# Unadjusted Linear Regression model
+library(gtsummary)
+
+predictors <- c("child_screen_time_cat", "comunity", "child_age_cat",
+                 "mother_ocu_cat_recode", "father_edu_cat" )
+
+# Create list of linear regression models
+Unadjusted_tbls <- lapply(predictors, function(var) {
+  formula <- as.formula(paste("log_SCAS_T_SCORE_total_log ~", var))
+  model <- lm(formula, data = data_set)
+  tbl_regression(model)  # no exponentiate for linear regression
+})
+
+# Give names to each table
+names(Unadjusted_tbls) <- predictors
+
+# Merge all into one table
+final_table <- tbl_merge(
+  tbls = Unadjusted_tbls,
+  tab_spanner = paste("Model for", predictors)
+)
+
+# View the final table
+final_table
+
+
+```
+
+
+
+
+
+
+```{r}
+library(gtsummary)
+
+# Unadjusted model
+Unadjusted_model <- lm(log_SCAS_T_SCORE_total_log ~ child_screen_time_cat,
+                       data = data_set)
+
+# Adjusted model
+Adjusted_model <- lm(log_SCAS_T_SCORE_total_log ~ child_screen_time_cat + comunity + 
+                       child_age_cat + mother_ocu_cat_recode + father_edu_cat,
+                     data = data_set)
+
+# Create regression tables
+tbl_unadjusted <- tbl_regression(Unadjusted_model, intercept = TRUE) %>% 
+  modify_header(label = "Variable")
+
+tbl_adjusted <- tbl_regression(Adjusted_model, intercept = TRUE) %>% 
+  modify_header(label = "Variable")
+
+# Merge into one table with headers
+final_table <- tbl_merge(
+  tbls = list(tbl_unadjusted, tbl_adjusted),
+  tab_spanner = c("**Unadjusted Model**", "**Adjusted Model**")
+)
+
+# Show merged table
+final_table
+
+```
+
+
+```{r}
+# Save The table
+final_table %>%
+  as_flex_table() %>%
+  flextable::save_as_docx(path = "final_table_scass.docx")
+
+```
+
+
+
+
+
+```{r}
+# Basic log transform (natural log)
+data_set$PSQI_Global_PSQI_score_log <- log10(data_set$PSQI_Global_PSQI_score+1)
+
+hist(data_set$PSQI_Global_PSQI_score_log)
+shapiro.test(data_set$PSQI_Global_PSQI_score_log)
+sd(data_set$PSQI_Global_PSQI_score_log)
+summary(data_set$PSQI_Global_PSQI_score_log)
+
+```
+
+
+
+
+```{r}
+## Covariate Check
+# T-tests
+t.test(PSQI_Global_PSQI_score_log ~ child_screen_time_cat, data = data_set)
+t.test(PSQI_Global_PSQI_score_log ~ comunity, data = data_set)
+t.test(PSQI_Global_PSQI_score_log ~ child_age_cat, data = data_set)
+cor.test(data_set$PSQI_Global_PSQI_score_log, data_set$total_screen_time_PARENT)
+
+# ANOVA
+anova_child_class <- aov(PSQI_Global_PSQI_score_log ~ child_CLAS_label, data = data_set)
+summary(anova_child_class)
+
+anova_mother_edu <- aov(PSQI_Global_PSQI_score_log ~ mother_edu_cat, data = data_set)
+summary(anova_mother_edu)
+
+anova_mother_ocu <- aov(PSQI_Global_PSQI_score_log ~ mother_ocu_cat_recode, data = data_set)
+summary(anova_mother_ocu)
+
+anova_father_edu <- aov(PSQI_Global_PSQI_score_log ~ father_edu_cat, data = data_set)
+summary(anova_father_edu)
+
+anova_father_ocu <- aov(PSQI_Global_PSQI_score_log ~ father_ocu_cat_recode, data = data_set)
+summary(anova_father_ocu)
+
+
+
+```
+
+
+
+```{r}
+
+## PSQI
+# Unadjusted Linear Regression model
+library(gtsummary)
+
+predictors <- c("child_screen_time_cat", "comunity", "child_age_cat",
+                 "mother_edu_cat", "father_edu_cat","father_ocu_cat_recode", "total_screen_time_PARENT")
+
+# Create list of linear regression models
+Unadjusted_tbls <- lapply(predictors, function(var) {
+  formula <- as.formula(paste("PSQI_Global_PSQI_score_log ~", var))
+  model <- lm(formula, data = data_set)
+  tbl_regression(model)  # no exponentiate for linear regression
+})
+
+# Give names to each table
+names(Unadjusted_tbls) <- predictors
+
+# Merge all into one table
+final_table <- tbl_merge(
+  tbls = Unadjusted_tbls,
+  tab_spanner = paste("Model for", predictors)
+)
+
+# View the final table
+final_table
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+library(gtsummary)
+
+# Unadjusted model
+Unadjusted_model <- lm(PSQI_Global_PSQI_score_log ~ child_screen_time_cat,
+                       data = data_set)
+
+# Adjusted model
+Adjusted_model <- lm(PSQI_Global_PSQI_score_log ~ child_screen_time_cat + comunity + 
+                       child_age_cat + mother_edu_cat + father_edu_cat+father_ocu_cat_recode+total_screen_time_PARENT,
+                     data = data_set)
+
+# Create regression tables
+tbl_unadjusted <- tbl_regression(Unadjusted_model, intercept = TRUE) %>% 
+  modify_header(label = "Variable")
+
+tbl_adjusted <- tbl_regression(Adjusted_model, intercept = TRUE) %>% 
+  modify_header(label = "Variable")
+
+# Merge into one table with headers
+final_table <- tbl_merge(
+  tbls = list(tbl_unadjusted, tbl_adjusted),
+  tab_spanner = c("**Unadjusted Model**", "**Adjusted Model**")
+)
+
+# Show merged table
+final_table
+
+```
+
+```{r}
+# Save The table
+final_table %>%
+  as_flex_table() %>%
+  flextable::save_as_docx(path = "final_table_psqi.docx")
+```
+
+
+```{r}
+## DAwba 
+
+# Load required package
+library(nnet)
+
+# Ensure dependent variable is an unordered factor
+data_set$total_DAWBA_score_cat <- factor(
+  data_set$total_DAWBA_score_cat,
+  levels = c("No problem", 
+             "At least one problem exists", 
+             "More than one problem exists"),
+  ordered = FALSE  # Required for multinom()
+)
+
+# Model 1: Univariate (screen time only)
+model1 <- multinom(total_DAWBA_score_cat ~ child_screen_time_cat,
+                   data = data_set)
+
+
+tbl_regression(model1)
+# Model 2: Multivariable (adjusted for covariates)
+model2 <- multinom(total_DAWBA_score_cat ~ child_screen_time_cat + comunity + SEX_1 +
+                      mother_edu_cat + mother_ocu_cat_recode 
+                      + father_ocu_cat_recode ,
+                 data = data_set)
+
+
+ tbl_regression(model2) 
+```
+
+```{r}
+#ibrary(gtsummary)
+
+# List of predictors for unadjusted models
+predictors <- c( "comunity","SEX_1", "mother_edu_cat", "mother_ocu_cat_recode",
+                "father_ocu_cat_recode")
+
+# Create unadjusted tables
+unadjusted_tbls <- lapply(predictors, function(var) {
+  formula <- as.formula(paste("total_DAWBA_score_cat ~", var))
+  model <- multinom(formula, data = data_set)
+  
+  tbl_regression(model) %>%
+    modify_column_hide(columns = c("std.error", "statistic"))  # hide other columns
+})
+
+# Optionally, give names to the list
+names(unadjusted_tbls) <- predictors
+
+# Combine
+all_tbls <- c(list(Adjusted = adjusted_tbl), unadjusted_tbls)
+
+```
+
+
+```{r}
+# 1. Prepare dependent variable
+data_set$total_DAWBA_score_cat <- factor(
+  data_set$total_DAWBA_score_cat,
+  levels = c("No problem", 
+             "At least one problem exists", 
+             "More than one problem exists"),
+  ordered = FALSE
+)
+
+# 2. Define predictors
+predictors <- c("child_screen_time_cat", "comunity", "child_age_cat",
+                "mother_edu_cat", "mother_ocu_cat_recode", "father_edu_cat",
+                "father_ocu_cat_recode", "BMI_Class", "child_CLAS_label")
+
+# 3. Create unadjusted models for each predictor
+unadjusted_models <- lapply(predictors, function(var) {
+  formula <- as.formula(paste("total_DAWBA_score_cat ~", var))
+  multinom(formula, data = data_set)
+})
+
+# 4. Create regression tables for each model
+unadjusted_tables <- lapply(seq_along(predictors), function(i) {
+  tbl_regression(
+    unadjusted_models[[i]],
+    exponentiate = TRUE,
+    label = list(all_of(predictors[i]) ~ predictors[i])
+  ) %>%
+    modify_column_hide(columns = c("std.error", "statistic", "ci")) %>%
+    modify_header(
+      estimate = "**OR (95% CI)**",
+      p.value = "**p-value**"
+    ) %>%
+    bold_labels() %>%
+    italicize_levels()
+})
+
+names(unadjusted_tables) <- predictors
+
+# 5. To combine all tables into one, use tbl_merge()
+combined_table <- tbl_merge(
+  tbls = unadjusted_tables,
+  tab_spanner = names(unadjusted_tables)
+)
+
+# Display the combined table
+combined_table
+```
+
+
+
+
+
+```{r}
+##
+
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+# Unadjusted Linear Regression model
+library(gtsummary)
+
+predictors <- c("child_screen_time_cat", "comunity", "child_age_cat",
+                "mother_edu_cat", "mother_ocu_cat_recode", "father_edu_cat",
+                "father_ocu_cat_recode", "BMI_Class", "child_CLAS_label")
+
+# Create list of linear regression models
+Unadjusted_tbls <- lapply(predictors, function(var) {
+  formula <- as.formula(paste("PSQI_Global_PSQI_score ~", var))
+  model <- lm(formula, data = data_set)
+  tbl_regression(model)  # no exponentiate for linear regression
+})
+
+# Give names to each table
+names(Unadjusted_tbls) <- predictors
+
+# Merge all into one table
+final_table <- tbl_merge(
+  tbls = Unadjusted_tbls,
+  tab_spanner = paste("Model for", predictors)
+)
+
+# View the final table
+final_table
+
+
+```
+
+
+
+
+
+
+
+```{r}
+library(gtsummary)
+
+# List of predictors for unadjusted models
+predictors <- c("child_screen_time_cat", "comunity", "child_age_cat",
+                "mother_edu_cat", "mother_ocu_cat_recode", "father_edu_cat",
+                "father_ocu_cat_recode", "BMI_Class", "child_CLAS_label")
+
+# Create unadjusted tables
+unadjusted_tbls <- lapply(predictors, function(var) {
+  formula <- as.formula(paste("PSQI_Global_PSQI_score ~", var))
+  model <- lm(formula, data = data_set)
+  
+  tbl_regression(model) %>%
+    modify_column_hide(columns = c("std.error", "statistic"))  # hide other columns
+})
+
+# Optionally, give names to the list
+names(unadjusted_tbls) <- predictors
+
+# Combine adjusted + unadjusted tables into one list
+all_tbls <- c(list(Adjusted = adjusted_tbl), unadjusted_tbls)
+
+
+
+```
+
+
+
+
+
+```{r}
+
+## Emotion_pro_cat Unadjusted Model
+
+library(gtsummary)
+
+predictors <- c("child_screen_time_cat", "comunity", "child_age_cat",
+                "mother_edu_cat", "mother_ocu_cat_recode","father_edu_cat","father_ocu_cat_recode", "BMI_Class","child_CLAS_label")
+
+# Create list of regression tables instead of raw models
+Unadjusted_tbls <- lapply(predictors, function(var) {
+  formula <- as.formula(paste("Emotion_pro_cat ~", var))
+  model <- glm(formula, data = data_set, family = binomial)
+  tbl_regression(model, exponentiate = TRUE) # ORs instead of log-odds
+})
+
+# Give names to each table
+names(Unadjusted_tbls) <- predictors
+
+# Merge all into one table
+final_table <- tbl_merge(
+  tbls = Unadjusted_tbls,
+  tab_spanner = paste("Model for", predictors)
+)
+
+
+
+final_table
+
+```
+
+
+
+
+
+
+```{r}
+library(gtsummary)
+
+# Unadjusted model for child_screen_time_cat only(SDQ)
+Unadjusted_model <- glm(Prosocial_pro_cat ~ child_screen_time_cat,
+                        data = data_set, family = binomial)
+
+# Adjusted model
+Adjusted_model <- glm(Prosocial_pro_cat ~ child_screen_time_cat + comunity + child_age_cat +
+                        child_CLAS_label + mother_edu_cat + mother_ocu_cat_recode +
+                        father_edu_cat + father_ocu_cat_recode + BMI_Class,
+                      data = data_set, family = binomial)
+
+# Create side-by-side table
+tbl_merged <- tbl_merge(
+  list(
+    tbl_regression(Unadjusted_model,
+                   exponentiate = TRUE,
+                   label = list(child_screen_time_cat ~ "Screen time category")) %>%
+      bold_labels() %>%
+      bold_p(t = 0.1) %>%
+      modify_header(estimate ~ "**Crude OR**"),
+    
+    tbl_regression(Adjusted_model,
+                   exponentiate = TRUE,
+                   label = list(child_screen_time_cat ~ "Screen time category")) %>%
+      bold_labels() %>%
+      bold_p(t = 0.1) %>%
+      modify_header(estimate ~ "**Adjusted OR**")
+  ),
+  tab_spanner = c("**Model 1** (Unadjusted)", 
+                  "**Model 2** (Adjusted)")
+)
+
+tbl_merged
+
+```
+
+
+### Firth Regression 
+
+
+
+
+
+```{r}
+#install.packages("glmnet")
+library(logistf)
+
+# Recode "Periurban" = 0, "Urban" = 1
+data_set$comunity_binary <- ifelse(data_set$comunity == "Urban", 1, 0)
+
+
+
+## Comunity ()
+
+library(gtsummary)
+
+predictors <- c("child_screen_time_cat", "child_age_cat",
+                "mother_edu_cat", "mother_ocu_cat_recode","father_edu_cat","father_ocu_cat_recode", "BMI_Class","child_CLAS_label")
+
+# Create list of firth regression tables instead of raw models
+Unadjusted_tbls <- lapply(predictors, function(var) {
+  formula <- as.formula(paste("comunity_binary ~", var))
+  model <- glm(formula, data = data_set)
+  tbl_regression(model, exponentiate = TRUE) 
+})
+
+# Give names to each table
+names(Unadjusted_tbls) <- predictors
+
+# Merge all into one table
+final_table <- tbl_merge(
+  tbls = Unadjusted_tbls,
+  tab_spanner = paste("Model for", predictors)
+)
+
+
+
+final_table
+
+```
+
+
+
+
+
+
+```{r}
+library(gtsummary)
+
+data_set$child_screen_time_h_log<-log10(data_set$total_screen_time_P_hr+1)
+
+# Unadjusted model for child_screen_time_cat only(SDQ)
+Unadjusted_model <- glm(comunity_binary ~ child_screen_time_h_log,
+                        data = data_set, family = binomial)
+
+# Adjusted model
+Adjusted_model <- glm(comunity_binary ~ child_screen_time_h_log  + child_age_cat +
+                        child_CLAS_label + mother_edu_cat + mother_ocu_cat_recode +
+                        father_edu_cat + father_ocu_cat_recode + BMI_Class,
+                      data = data_set, family = binomial)
+
+# Create side-by-side table
+tbl_merged <- tbl_merge(
+  list(
+    tbl_regression(Unadjusted_model,
+                   exponentiate = TRUE,
+                   label = list(child_screen_time_h_log ~ "Screen time category")) %>%
+      bold_labels() %>%
+      bold_p(t = 0.1) %>%
+      modify_header(estimate ~ "**Crude OR**"),
+    
+    tbl_regression(Adjusted_model,
+                   exponentiate = TRUE,
+                   label = list(child_screen_time_h_log ~ "Screen time category")) %>%
+      bold_labels() %>%
+      bold_p(t = 0.1) %>%
+      modify_header(estimate ~ "**Adjusted OR**")
+  ),
+  tab_spanner = c("**Model 1** (Unadjusted)", 
+                  "**Model 2** (Adjusted)")
+)
+
+tbl_merged
+
+```
+
+
+
+
+

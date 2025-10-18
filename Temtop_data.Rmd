@@ -1,0 +1,1237 @@
+---
+title: "Temtop"
+author: "Mukter"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+
+```{r}
+library(readxl)
+library(foreign)
+library(haven)
+library(dplR)
+library(tidyverse)
+library(labelled)
+library(survey)
+library(gtsummary)
+library(gt)
+library(lubridate)
+library(gmodels)
+library(gt)
+library(dplyr)
+library(janitor)
+library(openxlsx)
+library(officer)
+library(flextable)
+library(rmarkdown)
+library(knitr)
+library(psych)
+#library(irr)
+library(gtExtras)
+library(ggplot2)
+library(lubridate)
+library(labelled)
+library(haven)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+##### Recruitment Pregnant women 
+
+```{r}
+
+### Temtop data for Mahbub Bhai
+
+Temtop_data_box<-read_dta("temptop_processing_data_recruitment_Mother_for_correction.dta")
+
+Temtop_data_bio<-read_dta("Recruitment_Mother_Biodat_set.dta")
+
+```
+
+
+
+```{r}
+# Duplicates id keep of the box foder
+
+duplicated_Temtop_data_box <- Temtop_data_box %>%
+  group_by(mirage_pid_1) %>%           # Group by the id column
+  filter(n() > 1) %>%arrange(mirage_pid_1) 
+
+view(duplicated_Temtop_data_box)
+
+
+#### Use Unique Id 
+# This code removes rows with duplicate 'mirage_pid_1' values
+Temtop_data_box_unique <- Temtop_data_box %>%
+  arrange(mirage_pid_1) %>% # Important: arranges so distinct keeps the desired row
+  distinct(mirage_pid_1, .keep_all = TRUE) # Keeps only the first row for each ID
+
+count(Temtop_data_box_unique)
+
+view(Temtop_data_box_unique)
+
+
+####Drop if have variable name  PID
+Temtop_data_box_cleaned <- Temtop_data_box_unique %>%
+  filter(!grepl("PID", mirage_pid_1, ignore.case = TRUE))
+
+
+# Merge the two data set
+
+
+Merge_data<-full_join(Temtop_data_box_cleaned,Temtop_data_bio,by="mirage_pid_1",relationship = "many-to-many")
+
+
+# This does the same thing: filters for rows where ALL listed columns are not NA
+Merge_data_matched_pairs <- Merge_data %>%
+  filter(if_all(c(pm10, enu), ~ !is.na(.x)))
+
+# View the result
+View(Merge_data_matched_pairs)
+
+################# Check Duplicates id Merge_data_matched_pairs
+
+duplicated_check_fcn_no <- Merge_data_matched_pairs %>%
+  group_by(unique_id ) %>%           # Group by the id column
+  filter(n() > 1) %>%arrange(unique_id ) 
+
+view(duplicated_check_fcn_no)
+
+#count(Merge_data_matched_pairs)
+
+#### Box Folder All Data
+Temtop_box_All_recruitment<-read_dta("temptop_processing_data_recruitment_Mother.dta")
+
+### Rename & Drop un nessary Colum
+Temtop_box_All_recruitment<-Temtop_box_All_recruitment %>% 
+  select(-sheet) %>% rename(mirage_pid_1=pid)
+
+
+##### ALL Unique ID attached
+
+
+
+Merge_data_uni<-left_join(Merge_data_matched_pairs,Temtop_box_All_recruitment,by="unique_id",relationship = "many-to-many")
+
+count(Merge_data_uni)
+
+
+
+#### Not match Merge data set
+
+
+####Keep if have variable name  PID
+Temtop_data_box_keep <- Temtop_data_box_unique %>%
+  filter(grepl("PID", mirage_pid_1, ignore.case = TRUE))
+
+
+####
+####### Append The data set(If this id is not unique & Not match) 
+
+Appended_Temtop_data <- rbind(duplicated_Temtop_data_box, Temtop_data_box_keep)
+
+
+#### One 
+library(dplyr)
+library(lubridate)
+
+# Assuming your dataframe is named 'your_df'
+# And it has columns: 'date_column' (in format like "3/23/2023") and 'pid_column' (like 297308)
+
+your_df <- Temtop_data_bio %>%
+  mutate(
+    # First, convert the character date to a Date object using mdy()
+    date_formatted = mdy(survey_date),
+    # Then, format the Date object to the string YYYYMMDD
+    date_yyyymmdd = format(date_formatted, "%Y%m%d"),
+    # Finally, paste the date string and the PID together with an underscore
+    unique_id = paste(date_yyyymmdd, mirage_pid_1, sep = "_")
+  ) %>%
+  # You can optionally select or relocate the columns to see the result
+  select( mirage_pid_1, unique_id, everything())
+
+# View the result
+head(your_df$unique_id)
+
+#### Match id   data set  left merge  
+Megre_data_uni<-left_join(Appended_Temtop_data,your_df,by="unique_id",relationship = "many-to-many")
+
+#### Match data(Have Unique Id)
+
+Megre_data_uni1<-Megre_data_uni %>% filter(!is.na(mirage_pid_1.y))
+
+
+
+#### Match Data(Have Not Unique Id)
+Megre_data_uni2<-Megre_data_uni %>% filter(is.na(mirage_pid_1.y))
+
+Megre_data_uni2<-Megre_data_uni2 %>% select(date,pm10,pm2_5,co2,temperature,humidity,hcho,respondent_cat,,unique_id,mirage_pid_1.x,survey_date,instanceID) %>%
+  rename_with(~ gsub("\\.x$", "", .x), .cols = ends_with(".x"))
+
+
+# Excel form
+#write.xlsx(Not_match_data_small, "Not_match_data1.xlsx")
+#Match Data(Have Not Unique Id) data export in stata 
+#write_dta(Not_match_data_small, "Not_match_data1.dta", version = 15)
+#View(Megre_data_uni1)
+
+
+
+
+
+####JOin all data  #Match data(Have Unique Id)
+Join_data_all_data_set <- Megre_data_uni1 %>%
+  #select(unique_id) %>%
+  right_join(Temtop_box_All_recruitment,
+            by = "unique_id",
+            relationship = "many-to-many" # Use with extreme caution
+  )
+
+
+
+####### Now Two Unique data set(Append)
+data1 <- Join_data_all_data_set %>%
+  select(
+    date.y, pm10.y, pm2_5.y, co2.y, humidity.y, 
+    temperature.y, hcho.y, respondent_cat.y, unique_id, 
+    mirage_pid_1.y, survey_date, instanceID
+  ) %>%
+  rename_with(~ gsub("\\.y$", "", .), .cols = ends_with(".y"))
+
+data2<-Merge_data_uni %>% select(
+    date.y, pm10.y, pm2_5.y, co2.y, humidity.y, 
+    temperature.y, hcho.y, respondent_cat.y, unique_id, 
+    mirage_pid_1.y, survey_date, instanceID
+  ) %>%
+  rename_with(~ gsub("\\.y$", "", .), .cols = ends_with(".y"))
+
+### Append Two Data set
+final_data<-rbind(data1,data2)
+
+### Run export stata file
+
+
+#write_dta(final_data, "final_analysis_data123.dta", version = 15)
+
+### Save Google Drive
+
+# Define the real path you discovered
+real_path <- "H:/.shortcut-targets-by-id/10GfELvbVWTnThBtJs-WKEAmKwWDCBjeu/Clean Dataset/3_Working/Temtop_1"
+
+# Set this directory as your working directory
+setwd(real_path)
+
+
+
+# You can also save it with a full path without changing the working directory
+#write_dta(final_data, file.path(real_path, "Temtop_final_data.dta"))
+#write.xlsx(final_data, "final_analysis_data.xlsx")
+### use subfolder
+
+#Sub_folder_1<-Megre_data_uni2 %>% filter(unique_id=="")
+### Data Open at last Not match id 
+
+Not_match_data<-read_dta("Not_match_data2.dta")
+
+Not_match_data<-Not_match_data %>% select(-mirage_pid_1)
+
+Not_match_data<-left_join(Not_match_data,Temtop_data_bio,by="fcn_no")
+# Select Some Variable for left Megre
+Not_match_data1<-Not_match_data %>% select(unique_id,fcn_no,enu,survey_date,instanceID,mirage_pid_1) %>% left_join(Temtop_box_All_recruitment,by="unique_id")
+
+Not_match_data1<-Not_match_data1 %>% select(date,pm10,pm2_5,co2,humidity,hcho,temperature,respondent_cat,unique_id,mirage_pid_1.x,survey_date,instanceID)
+
+
+Not_match_data1<-Not_match_data1 %>%  
+  rename_with(~ gsub("\\.x$", "", .x), .cols = ends_with(".x"))
+
+### Merge ALL data Set open stata file
+
+#All_data<-read.xlsx("final_analysis_data.xlsx")
+# Convert the character date to datetime format
+Not_match_data1$date <- as.POSIXct(Not_match_data1$date, format = "%Y-%m-%d %H:%M")
+
+# Now you can bind the data frames
+ALL_data_join <- rbind(final_data, Not_match_data1)
+
+#ALL_data_join<-rbind(final_data,Not_match_data1)
+
+
+#ALL_data_join %>%select(pm10,pm2_5,co2,humidity,hcho) %>% summary()
+
+
+
+
+
+
+
+
+
+
+
+#write.xlsx(ALL_data_join, "ALL_data.xlsx")
+# You can also save it with a full path without changing the working directory( Save the Google Drive)
+
+#write_dta(ALL_data_join, file.path(real_path, "Temtop_final_data.dta"))
+#write.xlsx(ALL_data_join, file.path(real_path,"ALL_data.xlsx"))
+#write_dta(ALL_data_join,  "Temtop_final_data.dta")
+# If you get a warning about duplicate keys, you MUST investigate your data.
+
+
+# Correct syntax: reference columns directly within filter()
+Merge_data1 <- Merge_data %>%
+  filter(is.na(pm10)|is.na(enu))
+
+View(Merge_data1)
+
+
+
+#write.dta(Merge_data1,"Check_pid_data.dta")
+
+
+```
+
+##### Data Cleaning 
+
+```{r}
+#### Date seperation
+ALL_data_join1<-ALL_data_join %>%
+# Convert and extract time & month
+  mutate(
+    timestamp = ymd_hms(date),     # Convert to datetime
+    time_only = format(timestamp, "%H:%M:%S"),  # Time as string
+    month_only = month(timestamp, label = TRUE, abbr = FALSE),  # Full month name
+    Year_only= paste(year(timestamp))
+)
+###
+ 
+
+
+
+### Temtop Summary of recruitment pregnant women
+
+Temtop_summary <- ALL_data_join1 %>%
+  group_by(instanceID) %>%
+  summarise(
+    # First observation
+    first_time = first(timestamp),
+    first_temp = first(temperature),
+    first_pm2p5 = first(pm2_5),
+    first_pm10 = first(pm10),
+    first_co2 = first(co2),
+    first_hcho = first(hcho),
+    first_humidity = first(humidity),
+    
+    # Last observation
+    last_time = last(timestamp),
+    last_temp = last(temperature),
+    last_pm2p5 = last(pm2_5),
+    last_pm10 = last(pm10),
+    last_co2 = last(co2),
+    last_hcho = last(hcho),
+    last_humidity = last(humidity),
+    
+    # Optional: Duration of the session
+    duration_minutes = as.numeric(difftime(last_time, first_time, units = "mins")))
+
+
+
+
+
+
+#### Join Data Set
+
+ALL_Data_join<-full_join(Temtop_summary,ALL_data_join1,by="instanceID")
+
+
+ALL_Data_join2<-right_join(ALL_Data_join,Temtop_data_bio,by="instanceID")
+
+
+Recruitment_pregnant_women<-HH_survey_data %>% filter(respondent_cat==1) %>% select(fcn_no,temtop_start_time,temtop_stop_time) %>%right_join(ALL_Data_join2,by="fcn_no")
+
+Recruitment_pregnant_women1<-Recruitment_pregnant_women %>% filter(!is.na(pm2_5))
+
+
+View(Recruitment_pregnant_women1)
+
+#write.dta(Recruitment_pregnant_women1,"ALL_data12.dta")
+#write.xlsx(Recruitment_pregnant_women1, "ALL_data123.xlsx")
+
+
+################# Open data set
+
+
+data_temtop<-read.xlsx("ALL_data123.xlsx")
+
+
+
+```
+
+
+
+```{r}
+
+
+df1<-data_temtop %>% filter(pm10!="")
+#View(df1)
+
+df <- df1 %>%
+  mutate(
+    # Try standard formats
+    dt1 = ymd_hms(date, quiet = TRUE),      # e.g., 2023-11-23 12:19:47
+    dt2 = mdy_hm(date, quiet = TRUE),       # e.g., 11/23/2023 11:37
+    # Try Unix timestamp (numeric)
+    dt3 = as_datetime(as.numeric(date), origin = "1970-01-01", tz = "UTC"),
+    
+    # Combine them — take the first non-NA value
+    datetime = coalesce(dt2, dt1, dt3),
+    
+    # Extract time only (HH:MM:SS)
+    time_only = format(datetime, "%H:%M:%S")
+  )
+
+#View(df)
+
+
+
+```
+
+# Selected Necessary Variable
+
+```{r}
+
+df_2<-df %>%select(fcn_no,temtop_start_time,temtop_stop_time,instanceID,date,pm10,pm2_5,co2,humidity,temperature,hcho,respondent_cat,unique_id,mirage_pid_1.x,survey_date.x,enu,datetime) 
+
+df_2 <- df_2 %>%
+  mutate(
+    date_only = as.Date(datetime),                 # extracts only the date part
+    time_only = format(datetime, "%H:%M:%S")       # extracts only the time part
+  )
+
+df_2 <- df_2 %>%
+  mutate(
+    year  = year(date_only),     # extracts the year as number
+    month = month(date_only),    # extracts month as number (1–12)
+    month_name = month(date_only, label = TRUE, abbr = TRUE)  # month name, e.g. "Jan"
+  )
+
+library(dplyr)
+library(lubridate)
+
+df_3 <- df_2 %>%
+  group_by(instanceID) %>%
+  summarise(
+    temtop_de_start_time_ = first(time_only),
+    temtop_de_end_time   = last(time_only),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    # Convert character times to hms objects
+    start_hms = hms(temtop_de_start_time_),
+    end_hms   = hms(temtop_de_end_time),
+    
+    # If end time < start time, assume next day
+    end_hms = if_else(end_hms < start_hms, end_hms + days(1), end_hms),
+    
+    # Calculate duration
+    duration_mins  = as.numeric(end_hms - start_hms, units = "mins"),
+    duration_hours = as.numeric(end_hms - start_hms, units = "hours")
+  )
+
+
+
+
+
+df_3<-df_3 %>% select(instanceID,temtop_de_start_time_,temtop_de_end_time,duration_mins,duration_hours) 
+
+df_join<- full_join(df_2,df_3,by="instanceID")
+
+
+#write.dta(df_join,"pregnant_women_temtop_data1.dta")
+
+#write.xlsx(df_join, "pregnant_women_temtop_data.xlsx")
+
+
+```
+
+
+
+##### let’s do the same session-splitting + keep longest session per instanceid
+
+
+```{r}
+library(dplyr)
+library(lubridate)
+
+
+
+# ---- 2. Calculate time difference within each instanceid ----
+df_c <- df_join %>%
+  group_by(instanceID) %>%
+  arrange(datetime, .by_group = TRUE) %>%
+  mutate(
+    timediff = as.numeric(difftime(datetime, lag(datetime), units = "secs")),
+    # Start new session if gap ≥ 10 Miniuts
+    session = cumsum(ifelse(is.na(timediff) | timediff >= 600, 1, 0))
+  )
+##- 3. Compute session duration
+session_summary <- df_c %>%
+  group_by(instanceID, session) %>%
+  mutate(
+    start_time = min(datetime),
+    stop_time  = max(datetime),
+    duration_min = as.numeric(difftime(stop_time, start_time, units = "mins"))
+  )
+
+
+
+
+df_longest1<-session_summary %>% select(fcn_no,instanceID,temtop_start_time,temtop_stop_time,pm10,pm2_5,co2,humidity,temperature,hcho,respondent_cat,unique_id,mirage_pid_1.x ,survey_date.x,datetime,time_only,session,start_time,stop_time,duration_min)
+
+#write.xlsx(df, "pregnant_women_temtop_data2.xlsx")
+
+
+# Split at the space between date & time
+df <- df_longest1 %>%
+  separate(start_time, into = c("date_only_start", "temtop_de_start_time"), sep = " ") %>% 
+  separate(stop_time, into = c("date_only_stop", "temtop_de_end_time"), sep = " ")
+
+
+
+# Convert to Date format
+df <- df %>%
+  mutate(
+    date_only = ymd(date_only_start),           # convert string to Date
+    year  = year(date_only_start),              # extract year
+    month = month(date_only_start),             # extract month number
+    month_name = month(date_only_start, label = TRUE, abbr = FALSE)  # full month name
+  )
+
+
+#View(df)
+write.xlsx(df, "pregnant_women_temtop_data4.xlsx")
+# ---- 6. View the result ----
+#df_longest
+
+
+
+```
+
+
+
+
+
+```{r}
+### Open stata data for cleaning (Session check have two or More)
+
+data<-read_stata("Re_Pw_temtop_data.dta")
+
+
+
+
+df_check <- data %>%
+  group_by(instanceid) %>%
+  summarise(
+    n_sessions = n_distinct(session),
+    sessions   = paste(sort(unique(session)), collapse = ", ")
+  ) %>%
+  ungroup()
+
+# View only instanceIDs with 2 or more sessions
+df_check %>%
+  filter(n_sessions >= 2)
+
+df_check1<- df_check %>% filter(n_sessions!=1)
+
+
+#View(df_check1)
+
+#write.xlsx(df_check1, "data_check.xlsx")
+
+
+```
+
+
+
+
+
+
+### Recruitment Pregnant women Summary part
+
+
+
+
+```{r}
+
+### Data set Run
+
+
+library(haven)
+library(psych)
+
+# Define the path (use double backslashes or raw string with r"")
+file_path <- "H:\\.shortcut-targets-by-id\\10GfELvbVWTnThBtJs-WKEAmKwWDCBjeu\\Clean Dataset\\3_Working\\Temtop_1\\data_temto_pw_v2.dta"
+
+# Load the data
+data <- read_dta(file_path)
+
+# View structure and column names
+#str(data)
+#head(data)
+
+#colnames(data)
+
+```
+
+
+
+
+
+
+```{r}
+
+
+data <- data %>%
+  mutate(month_label = factor(month.name[month],
+                              levels = month.name,
+                              ordered = TRUE))
+
+
+
+data_mean<-data %>% filter(!is.na(n_sessions))
+
+
+# Load the required package
+library(skimr)
+
+
+data %>% 
+  select(duration_minutes, month_label, pm2_5, pm2_5_mean, pm10, pm10_mean,
+         hcho, hcho_mean, co2, co2_mean,
+         humidity, humidity_mean,
+         temperature_f, temperature_mean_f,
+         temperature_c, temperature_mean_c) %>% 
+  skim()
+
+
+
+
+
+
+
+
+
+
+
+
+# --- Load Packages ---
+library(dplyr)
+library(ggplot2)
+library(gtsummary)   # for clean summary tables
+library(janitor)     # optional, for tabyl
+# install.packages(c("dplyr","ggplot2","gtsummary","janitor")) if needed
+
+# --- Convert Month to Label ---
+data <- data %>%
+  mutate(month_label = factor(month.abb[month], levels = month.abb)) 
+
+# --- Create Monthly Summary Table ---
+data_summary <- data %>%
+  group_by(month_label) %>%
+  summarise(
+    # Record counts
+    n_records = n(),
+    
+    # PM2.5 metrics
+    pm2_5_mean = mean(pm2_5, na.rm = TRUE),
+    pm2_5_sd = sd(pm2_5, na.rm = TRUE),
+    pm2_5_median = median(pm2_5, na.rm = TRUE),
+    
+    # PM10 metrics
+    pm10_mean = mean(pm10, na.rm = TRUE),
+    pm10_sd = sd(pm10, na.rm = TRUE),
+    pm10_median = median(pm10, na.rm = TRUE),
+    
+    # HCHO metrics
+    hcho_mean = mean(hcho, na.rm = TRUE),
+    hcho_sd = sd(hcho, na.rm = TRUE),
+    hcho_median = median(hcho, na.rm = TRUE),
+    
+    # CO2 metrics
+    co2_mean = mean(co2, na.rm = TRUE),
+    co2_sd = sd(co2, na.rm = TRUE),
+    co2_median = median(co2, na.rm = TRUE),
+    
+    # Humidity metrics
+    humidity_mean = mean(humidity, na.rm = TRUE),
+    humidity_sd = sd(humidity, na.rm = TRUE),
+    humidity_median = median(humidity, na.rm = TRUE),
+    
+    # Temperature metrics (just need one scale)
+    temp_c_mean = mean(temperature_c, na.rm = TRUE),
+    temp_c_sd = sd(temperature_c, na.rm = TRUE),
+    temp_c_median = median(temperature_c, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Format for better readability
+data_summary_formatted <- data_summary %>%
+  mutate(across(where(is.numeric), ~ round(., 2)))
+
+# View summary table in R console
+print(data_summary_formatted, n = Inf)
+
+# Optional: Save to CSV for your supervisor
+#write.csv(data_summary_formatted, "monthly_air_quality_summary.csv", row.names = FALSE)
+# --- Optional: Clean Table with gtsummary ---
+data_summary %>%
+  tbl_summary(by = month_label,
+              statistic = all_continuous() ~ "{mean} ± {sd}") %>%
+  as_gt()
+
+# --- Plot Example: PM2.5 Trend Over Months ---
+ggplot(data, aes(x = month_label, y = pm2_5)) +
+  stat_summary(fun = mean, geom = "line", group = 1, color = "blue") +
+  stat_summary(fun = mean, geom = "point", color = "blue") +
+  labs(title = "Average PM2.5 by Month",
+       x = "Month",
+       y = "PM2.5 (µg/m³)") +
+  theme_minimal()
+
+
+
+# --- Plot Example: Temperature vs Month ---
+ggplot(data, aes(x = month_label, y = temperature_c)) +
+  stat_summary(fun = mean, geom = "line", group = 1, color = "red") +
+  stat_summary(fun = mean, geom = "point", color = "red") +
+  labs(title = "Average Temperature (°C) by Month",
+       x = "Month",
+       y = "Temperature (°C)") +
+  theme_minimal()
+
+
+
+
+```
+
+
+
+```{r}
+library(gtsummary)
+
+data %>%
+  select(pm2_5, pm10, hcho, co2, humidity, temperature_c) %>%
+  tbl_summary() %>%
+  as_gt()
+
+```
+
+
+##Group by month to see seasonal variations:
+
+```{r}
+data %>% 
+  group_by(month) %>% 
+  summarise(across(c(pm2_5, pm10, hcho, co2, humidity, temperature_c),
+                   list(mean = mean, sd = sd), na.rm = TRUE))
+
+```
+
+
+```{r}
+# Check missing values before plotting
+missing_summary <- data %>%
+  summarise(across(all_of(vars), 
+                   list(
+                     n = ~sum(!is.na(.)),
+                     missing = ~sum(is.na(.)),
+                     missing_pct = ~round(mean(is.na(.)) * 100, 2)
+                   )))
+
+print("Missing Data Summary:")
+print(missing_summary)
+
+# Then run the plotting code above
+```
+```{r}
+# ---- List of variables ----
+vars <- c("pm2_5", "pm10", "hcho", "co2", "humidity", "temperature_f", "temperature_c")
+
+# ---- Improved function to plot histogram with normal curve ----
+hist_with_norm <- function(data, var, bins = 200, fill_color = "skyblue", curve_color = "red") {
+  # Remove missing values for this variable
+  clean_data <- data[!is.na(data[[var]]), ]
+  n_obs <- nrow(clean_data)
+  n_missing <- nrow(data) - n_obs
+  
+  var_mean <- mean(clean_data[[var]], na.rm = TRUE)
+  var_sd <- sd(clean_data[[var]], na.rm = TRUE)
+  
+  # Create plot
+  p <- ggplot(clean_data, aes_string(x = var)) +
+    geom_histogram(aes(y = ..density..),
+                   bins = bins,
+                   fill = fill_color, color = "black", alpha = 0.8) +
+    stat_function(fun = dnorm,
+                  args = list(mean = var_mean, sd = var_sd),
+                  color = curve_color, size = 1) +
+    labs(title = paste("Distribution of", var),
+         subtitle = paste("N =", format(n_obs, big.mark = ","), 
+                         #"| Missing =", n_missing,
+                         "| Mean =", round(var_mean, 2),
+                         "| SD =", round(var_sd, 2)),
+         x = var, y = "Density") +
+    theme_minimal()
+  
+  return(p)
+}
+
+# ---- Loop over each variable and plot ----
+plots <- lapply(vars, function(v) hist_with_norm(data, v))
+
+# Display plots one by one
+for (p in plots) print(p)
+```
+
+
+
+
+#### Mean Graph
+
+
+
+```{r}
+# ---- Enhanced version with better formatting ----
+library(ggplot2)
+
+# Create descriptive names for files
+variable_names <- c(
+  "pm2_5_mean" = "PM2.5",
+  "pm10_mean" = "PM10", 
+  "hcho_mean" = "Formaldehyde",
+  "co2_mean" = "CO2",
+  "humidity_mean" = "Humidity",
+  "temperature_mean_f" = "Temperature_F",
+  "temperature_mean_c" = "Temperature_C"
+)
+
+# Create directory
+if (!dir.exists("histograms")) {
+  dir.create("histograms")
+}
+
+# Enhanced plotting function
+hist_with_norm <- function(data_mean, var, var_label, bins = 30) {
+  clean_data <- data_mean[!is.na(data_mean[[var]]), ]
+  n_obs <- nrow(clean_data)
+  var_mean <- mean(clean_data[[var]], na.rm = TRUE)
+  var_sd <- sd(clean_data[[var]], na.rm = TRUE)
+  
+  ggplot(clean_data, aes_string(x = var)) +
+    geom_histogram(aes(y = ..density..),
+                   bins = bins,
+                   fill = "lightblue", color = "darkblue", alpha = 0.7) +
+    stat_function(fun = dnorm,
+                  args = list(mean = var_mean, sd = var_sd),
+                  color = "red", size = 1, linetype = "dashed") +
+    labs(title = paste("Distribution of", var_label),
+         subtitle = paste("N =", format(n_obs, big.mark = ","),
+                         "| Mean =", round(var_mean, 4),
+                         "| SD =", round(var_sd, 4)),
+         x = var_label, y = "Density") +
+    theme_minimal() +
+    theme(plot.title = element_text(face = "bold", size = 14),
+          plot.subtitle = element_text(color = "gray40"))
+}
+
+# Generate and save all plots
+for (i in seq_along(vars)) {
+  v <- vars[i]
+  v_label <- variable_names[v]
+  
+  cat("Processing (", i, "/", length(vars), "): ", v, "\n", sep = "")
+  
+  p <- hist_with_norm(data_mean, v, v_label)
+  print(p)
+  
+  # Save with clean filename
+  file_name <- paste0("histograms/", v_label, "_histogram.png")
+  ggsave(file_name, plot = p, width = 10, height = 6, dpi = 300, bg = "white")
+}
+
+cat("✓ All", length(vars), "histograms saved to 'histograms/' directory\n")
+```
+
+
+
+
+
+
+## histograms with normal curves for all your main variables
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# ---- List of variables ----
+vars <- c("pm2_5", "pm10", "hcho", "co2", "humidity", "temperature_f", "temperature_c")
+
+# ---- Function to plot histogram with normal curve ----
+hist_with_norm <- function(data, var, bins = 30, fill_color = "skyblue", curve_color = "red") {
+  var_mean <- mean(data[[var]], na.rm = TRUE)
+  var_sd   <- sd(data[[var]], na.rm = TRUE)
+  
+  ggplot(data, aes_string(x = var)) +
+    geom_histogram(aes(y = ..density..),
+                   bins = bins,
+                   fill = fill_color, color = "black", alpha = 0.6) +
+    stat_function(fun = dnorm,
+                  args = list(mean = var_mean, sd = var_sd),
+                  color = curve_color, size = 1) +
+    labs(title = paste("Histogram of", var, "(N=449,648)"),
+         x = var, y = "Density") +
+    theme_minimal()
+}
+
+# ---- Loop over each variable and plot ----
+plots <- lapply(vars, function(v) hist_with_norm(data, v))
+
+# Display plots one by one
+for (p in plots) print(p)
+
+#plot with ggsave()
+#ggsave("pm2_5_hist.png", plot = hist_with_norm(data, "pm2_5"))
+#ggsave("pm10_hist.png", plot = hist_with_norm(data, "pm10"))
+#ggsave("hcho_hist.png", plot = hist_with_norm(data, "hcho"))
+#ggsave("co2_hist.png", plot = hist_with_norm(data, "co2"))
+#ggsave("humidity_hist.png", plot = hist_with_norm(data, "humidity"))
+#ggsave("temperature_f_hist.png", plot = hist_with_norm(data, "temperature_f"))
+#ggsave("temperature_c_hist.png", plot = hist_with_norm(data, "temperature_c"))
+
+
+```
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# --- 1. Make sure month_label is an ordered factor ---
+
+
+# --- 2. Convert to long format ---
+vars <- c("pm2_5", "pm10", "hcho", "co2", "humidity", "temperature_f", "temperature_c")
+
+data_long <- data %>%
+  select(month_label, all_of(vars)) %>%
+  pivot_longer(cols = all_of(vars),
+               names_to = "variable",
+               values_to = "value")
+
+# --- 3. Compute monthly means ---
+monthly_means <- data_long %>%
+  group_by(month_label, variable) %>%
+  summarise(mean_value = mean(value, na.rm = TRUE), .groups = "drop")
+
+# --- 4. Plot all variables in one graph ---
+p_all <- ggplot(monthly_means,
+       aes(x = month_label, y = mean_value, group = variable, color = variable)) +
+  geom_line() +
+  geom_point() +
+  geom_text(aes(label = round(mean_value, 1)),
+            vjust = -0.5, size = 3, show.legend = FALSE) +
+  labs(title = "Average Monthly Values of Air Quality Indicators",
+       x = "Month",
+       y = "Mean Value",
+       color = "Variable") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# --- 5. Save the combined plot ---
+#ggsave("Monthly_Air_Quality_AllVariables.png", plot = p_all, width = 10, height = 6, dpi = 300)
+
+```
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Define variables and labels
+vars <- c("pm2_5_mean", "pm10_mean", "hcho_mean", "co2_mean",
+          "humidity_mean", "temperature_mean_f", "temperature_mean_c")
+
+variable_labels <- c(
+  "pm2_5_mean" = "PM2.5 (µg/m³)",
+  "pm10_mean" = "PM10 (µg/m³)", 
+  "hcho_mean" = "Formaldehyde(mg/m³)",
+  "co2_mean" = "CO2 (ppm)",
+  "humidity_mean" = "Humidity (%)",
+  "temperature_mean_f" = "Temperature (°F)",
+  "temperature_mean_c" = "Temperature (°C)"
+)
+
+# Transform data
+data_long <- data_mean %>%
+  select(month_label, all_of(vars)) %>%
+  pivot_longer(cols = all_of(vars),
+               names_to = "variable",
+               values_to = "value")
+
+monthly_means <- data_long %>%
+  group_by(month_label, variable) %>%
+  summarise(mean_value = mean(value, na.rm = TRUE), .groups = "drop")
+
+# Create output directory
+if (!dir.exists("monthly_plots")) {
+  dir.create("monthly_plots")
+}
+
+# Plotting function
+create_monthly_plot <- function(df_plot, var_name) {
+  label <- variable_labels[var_name]
+  
+  ggplot(df_plot, aes(x = month_label, y = mean_value, group = 1)) +
+    geom_line(color = "steelblue", linewidth = 1) +
+    geom_point(color = "steelblue", size = 2) +
+    geom_text(aes(label = round(mean_value, 3)),  # Change 1 to 4 for hcho
+              vjust = -0.8, size = 3, color = "darkred") +
+    labs(title = paste("Average", label, "by Month"),
+         x = "Month",
+         y = label) +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    ) +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.15)))
+}
+
+# Generate plots
+for (i in seq_along(vars)) {
+  v <- vars[i]
+  cat("Processing", i, "of", length(vars), ":", v, "\n")
+  
+  df_plot <- monthly_means %>% filter(variable == v)
+  p <- create_monthly_plot(df_plot, v)
+  
+  print(p)
+  ggsave(paste0("monthly_plots/Monthly_", v, ".png"), 
+         plot = p, width = 10, height = 6, dpi = 300)
+}
+
+cat("All plots saved to 'monthly_plots' directory!\n")
+```
+
+
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# --- Variables to plot ---
+mean_vars <- c("pm2_5_mean", "pm10_mean", "hcho_mean", "co2_mean",
+               "humidity_mean", "temperature_mean_f", "temperature_mean_c")
+
+# --- Function to plot histogram with normal curve ---
+hist_with_norm <- function(data, var, bins = 30, fill_color = "skyblue", curve_color = "red") {
+  var_mean <- mean(data[[var]], na.rm = TRUE)
+  var_sd   <- sd(data[[var]], na.rm = TRUE)
+  
+  ggplot(data, aes_string(x = var)) +
+    geom_histogram(aes(y = ..density..),
+                   bins = bins,
+                   fill = fill_color, color = "black", alpha = 0.6) +
+    stat_function(fun = dnorm,
+                  args = list(mean = var_mean, sd = var_sd),
+                  color = curve_color, size = 1) +
+    labs(title = paste("Histogram of", var, "(N=2810)"),
+         x = var, y = "Density") +
+    theme_minimal()
+}
+
+# --- Loop through variables, plot separately, and save ---
+for (v in mean_vars) {
+  p <- hist_with_norm(data, v)
+  
+  # Display in RStudio
+  print(p)
+  
+  # Save to PNG file
+  file_name <- paste0("Histogram_", v, ".png")
+  ggsave(file_name, plot = p, width = 8, height = 5, dpi = 300)
+}
+
+```
+
+
+
+
+######### Third trimester pregnant women 
+
+
+```{r}
+
+### Temtop data for Mahbub Bhai
+
+Temtop_data_box<-read_dta("temptop_processing_third_trimester_Mother.dta")
+
+Temtop_data_bio<-read_dta("third_trimester_Mother_Biodat_set.dta")
+
+```
+
+
+```{r}
+# Duplicates id keep of the box foder
+
+duplicated_Temtop_data_box <- Temtop_data_box %>%
+  group_by(mirage_pid_1) %>%           # Group by the id column
+  filter(n() > 1) %>%arrange(mirage_pid_1) 
+
+#view(duplicated_Temtop_data_box)
+
+# Merge the two data set
+
+
+Merge_data<-full_join(Temtop_data_box,Temtop_data_bio,by="mirage_pid_1",relationship = "many-to-many")
+
+
+#### Not match Merge data set
+
+# Correct syntax: reference columns directly within filter()
+Merge_data1 <- Merge_data %>%
+  filter(is.na(pm10)|is.na(enu))
+
+
+
+#write.dta(Merge_data1,"Check_pid_data_thidr.dta")
+
+```
+
+
+
+## Birth Follow up
+
+
+```{r}
+### Temtop data for Mahbub Bhai
+
+Temtop_data_box<-read_dta("temptop_processing_Birth_follow_up_Mothers.dta")
+
+Temtop_data_bio<-read_dta("Birth_follow_up_Mother_Biodat_set.dta")
+
+
+
+
+# Duplicates id keep of the box foder
+
+duplicated_Temtop_data_box <- Temtop_data_box %>%
+  group_by(mirage_pid_1) %>%           # Group by the id column
+  filter(n() > 1) %>%arrange(mirage_pid_1) 
+
+#view(duplicated_Temtop_data_box)
+
+# Merge the two data set
+
+
+Merge_data<-full_join(Temtop_data_box,Temtop_data_bio,by="mirage_pid_1",relationship = "many-to-many")
+
+
+#### Not match Merge data set
+
+# Correct syntax: reference columns directly within filter()
+Merge_data1 <- Merge_data %>%
+  filter(is.na(pm10)|is.na(enu))
+
+View(Merge_data1)
+
+#write.dta(Merge_data1,"Check_pid_data_birth.dta")
+```
+
+
+
+
+
+
+### Six Month 
+
+## Birth Follow up
+
+
+```{r}
+### Temtop data for Mahbub Bhai
+
+Temtop_data_box<-read_dta("temptop_processing_6-month_follow_up_Mothers.dta")
+
+Temtop_data_bio<-read_dta("six_follow_up_Mother_Biodat_set.dta")
+
+
+
+
+# Duplicates id keep of the box foder
+
+duplicated_Temtop_data_box <- Temtop_data_box %>%
+  group_by(mirage_pid_1) %>%           # Group by the id column
+  filter(n() > 1) %>%arrange(mirage_pid_1) 
+
+#view(duplicated_Temtop_data_box)
+
+# Merge the two data set
+
+
+Merge_data<-full_join(Temtop_data_box,Temtop_data_bio,by="mirage_pid_1",relationship = "many-to-many")
+
+
+#### Not match Merge data set
+
+# Correct syntax: reference columns directly within filter()
+Merge_data1 <- Merge_data %>%
+  filter(is.na(pm10)|is.na(enu))
+
+View(Merge_data1)
+
+#write.dta(Merge_data1,"Check_pid_data_birth.dta")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

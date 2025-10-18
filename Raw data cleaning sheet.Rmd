@@ -1,0 +1,423 @@
+---
+title: "Raw data cleaning sheet"
+author: "Mukter"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+# Specify the file path
+file_path1 <- "H:/My Drive/NYU_LONGITUDINAL_raw_data_cleaning_2023.xlsx"
+
+# Import the "6month follow up" sheet
+```
+
+
+```{r}
+
+library(readxl)
+
+
+NYU_LONGITUDINAL_raw_data_cleaning <- read_excel(file_path1, sheet = "Sheet1")
+
+NYU_LONGITUDINAL_raw_data_cleaning<-NYU_LONGITUDINAL_raw_data_cleaning %>% 
+  select(-c(...14,...15,...16))
+
+```
+
+```{r}
+
+#Duplicates check
+
+#Raw_data_HH_survey_data<-NYU_LONGITUDINAL_raw_data_cleaning %>% 
+ # filter(`Survey type`=="HH Survey") %>%
+  #group_by(instanceID,`Variable/Question`) %>%
+  #filter(n() > 1) %>%
+  #ungroup()
+
+Raw_data_HH_survey_data<-NYU_LONGITUDINAL_raw_data_cleaning %>% 
+  #filter(`Survey type`=="HH Survey") %>%
+  group_by(instanceID,`Variable/Question`,`Survey type`) %>%
+  filter(n() > 1) %>%
+  ungroup()
+#write.xlsx(Raw_data_HH_survey_data , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+View(Raw_data_HH_survey_data)
+
+```
+
+
+
+
+
+```{r}
+Raw_data_HH_survey_data1 <- NYU_LONGITUDINAL_raw_data_cleaning %>%
+  group_by(instanceID, `Variable/Question`, `Survey type`) %>%
+  filter(n() > 1) %>%  # Keep only duplicates
+  arrange(desc(`Serial No.`)) %>%  # Arrange in descending order based on 'si'
+  slice(1) %>%  # Keep the row with the highest 'si' value
+  ungroup()
+
+
+Raw_data_HH_survey_data1 <- NYU_LONGITUDINAL_raw_data_cleaning %>%
+  group_by(instanceID, `Variable/Question`, `Survey type`) %>%
+  filter(n() > 1) %>%  # Keep only duplicates
+  arrange(desc(`Serial No.`)) %>%  # Arrange in descending order based on 'si'
+  slice(1) %>%  # Drop the first (lowest) row in each group
+  ungroup()
+
+View(Raw_data_HH_survey_data1)
+#write.xlsx(Raw_data_HH_survey_data1 , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+#Merged_data <- full_join(Raw_data_HH_survey_data1, Raw_data_HH_survey_data, 
+                          by = c("instanceID", "Variable/Question", "Survey type"))
+
+```
+
+Respondent_cat Check
+
+```{r}
+
+Raw_data_HH_survey_data <- NYU_LONGITUDINAL_raw_data_cleaning %>% 
+  right_join(Bio_data,by="instanceID")
+
+Raw_data_HH_survey_data1 <- Raw_data_HH_survey_data %>% 
+select(instanceID,`Serial No.`,`FCN/HH Number(From Server Data)`,`respondent category`,Details,respondent_cat,fcn_no,`Survey type`,`Variable/Question`) %>% 
+  filter(`Survey type`=="HH Survey")
+
+table(Raw_data_HH_survey_data1$`Survey type`)
+
+```
+
+
+```{r}
+library(dplyr)
+
+Raw_data_HH_survey_data1 <- Raw_data_HH_survey_data1 %>%
+  mutate(respondent_cat_1 = case_when(
+    `respondent category` == "1. Recruitment: Pregnant Women" ~ 1,
+    `respondent category` == "2. Recruitment: Husbands/Father" ~ 2,
+    `respondent category` == "31. Recruitment: EY child" ~ 31,
+    `respondent category` == "4. 3rd Trimester followup: Pregnant Women" ~ 4,
+    `respondent category` == "6. Birth follow up: Mothers" ~ 6,
+    `respondent category` == "61. Birth follow up: Children" ~ 61,
+    `respondent category` == "7. 6-month follow up: Mothers" ~ 7,
+    `respondent category` == "71. 6-month follow up: children" ~ 71,
+    `respondent category` == "7. 8-month follow up: Mothers" ~ 9,
+    `respondent category` == "71. 8-month follow up: children" ~ 8,
+    `respondent category` == "9. 8-month follow up: EY Fathers" ~ 81,
+    TRUE ~ NA_real_  # Assign NA if no match is found
+  ))
+
+Raw_data_HH_survey_data1<-Raw_data_HH_survey_data1 %>% 
+  mutate(respondent_cat_check=ifelse(respondent_cat_1==respondent_cat,"Yes","No")) %>% 
+  filter(respondent_cat_check=="No")
+
+
+```
+
+
+
+```{r}
+
+check_birth<-read_dta("check_birth.dta")
+
+check_birth<-check_birth %>% 
+  merge(NYU_LONGITUDINAL_raw_data_cleaning,by="instanceID")
+
+
+```
+
+
+
+```{r}
+HH_survey_data1<-HH_survey_data %>% 
+  select(fcn_no,instanceID,respondent_cat)
+
+HH_Raw<-NYU_LONGITUDINAL_raw_data_cleaning %>% 
+  filter(`Survey type`=="HH Survey") %>% 
+  left_join(HH_survey_data1,by="instanceID") #%>% 
+  #filter(is.na(`respondent category`)|is.na(respondent_cat))
+
+
+HH_Raw <- HH_Raw %>%
+  mutate(respondent_cat_1 = case_when(
+    `respondent category` == "1. Recruitment: Pregnant Women" ~ 1,
+    `respondent category` == "2. Recruitment: Husbands/Father" ~ 2,
+    `respondent category` == "31. Recruitment: EY child" ~ 31,
+    `respondent category` == "4. 3rd Trimester followup: Pregnant Women" ~ 4,
+    `respondent category` == "6. Birth follow up: Mothers" ~ 6,
+    `respondent category` == "61. Birth follow up: Children" ~ 61,
+    `respondent category` == "7. 6-month follow up: Mothers" ~ 7,
+    `respondent category` == "71. 6-month follow up: children" ~ 71,
+    `respondent category` == "7. 8-month follow up: Mothers" ~ 9,
+    `respondent category` == "71. 8-month follow up: children" ~ 8,
+    `respondent category` == "9. 8-month follow up: EY Fathers" ~ 81,
+    `respondent category` == "3. Recruitment: EY Mothers" ~ 3,
+    `respondent category` == "8. 6-month follow up: EY Mothers" ~ 8,
+    TRUE ~ NA_real_  # Assign NA if no match is found
+  ))
+
+HH_Raw<-HH_Raw %>% 
+  mutate(respondent_cat_check=ifelse(respondent_cat_1==respondent_cat,"Yes","No")) %>% 
+  filter(respondent_cat_check=="No")
+View(HH_Raw)
+```
+
+```{r}
+
+Bio_data_1<- Bio_data %>% 
+  select(fcn_no,respondent_cat,instanceID)
+
+Bio_Raw<-NYU_LONGITUDINAL_raw_data_cleaning %>% 
+  filter(`Survey type`=="BIO") %>% 
+  left_join(Bio_data_1,by="instanceID") %>% 
+  filter(is.na(`respondent category`)|is.na(respondent_cat)) %>% 
+  filter(`Variable/Question`!="drop")
+#write.xlsx(Bio_Raw , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+View(Bio_Raw)
+```
+
+```{r}
+
+Birth_data_1<- Birth_data %>% 
+  select(fcn_no,respondent_cat,instanceID)
+
+Birth_Raw<-NYU_LONGITUDINAL_raw_data_cleaning %>% 
+  filter(`Survey type`=="Birth") %>% 
+  left_join(Birth_data_1,by="instanceID") %>% 
+  filter(is.na(respondent_cat)) %>% 
+  filter(`Variable/Question`!="drop")
+write.xlsx(Birth_Raw , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+View(Birth_Raw)
+
+```
+
+
+```{r}
+Bayley_data<-read_dta("HH_survey_Bayley.dta") 
+Bayley_data_1<- Bayley_data %>% 
+  select(fcn_no,respondent_cat_ey,instanceID)
+
+Bayley_Raw<-NYU_LONGITUDINAL_raw_data_cleaning %>% 
+  filter(`Survey type`=="Bayley") %>% 
+  left_join(Bayley_data_1,by="instanceID") %>% 
+  filter(is.na(respondent_cat_ey)) %>% 
+  filter(`Variable/Question`!="drop")
+#write.xlsx(Bayley_Raw , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+View(Bayley_Raw)
+```
+
+
+
+```{r}
+Rnda_data<-read_dta("HH_survey_RNDA.dta") 
+Rnda_data_1<- Rnda_data %>% 
+  select(fcn_no,respondent_cat_ey,instanceID)
+
+RNDA_Raw<-NYU_LONGITUDINAL_raw_data_cleaning %>% 
+  filter(`Survey type`=="RNDA") %>% 
+  left_join(Rnda_data_1,by="instanceID") %>% 
+  filter(is.na(respondent_cat_ey)) %>% 
+  filter(`Variable/Question`!="drop")
+#write.xlsx(Bayley_Raw , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+View(RNDA_Raw)
+```
+
+
+
+```{r}
+
+file_path1 <- "H:/My Drive/NYU_LONGITUDINAL_raw_data_cleaning_2023.xlsx"
+
+Bayley_data<-read_dta("H:/.shortcut-targets-by-id/10GfELvbVWTnThBtJs-WKEAmKwWDCBjeu/Clean Dataset/2_Data_file/HH_survey_Bayley.dta")
+
+Bayley_data1<-Bayley_data %>% 
+  select(fcn_no,assessorname,assessorid_oth,cage_days,cage_months,c_age_m,c_age_d,instanceID,cal_date,dob,comment_all)
+
+library(dplyr)
+library(lubridate)
+
+Bayley_correction <- NYU_LONGITUDINAL_raw_data_cleaning %>% 
+  filter(`Survey type` == "Bayley" & `Variable/Question` == "dob") %>% 
+  select(`FCN/HH Number(From Server Data)`) %>%  # Assuming 'Value' stores dob
+  rename(fcn_no = `FCN/HH Number(From Server Data)`) %>% 
+  mutate(
+    fcn_no = as.numeric(fcn_no)
+  ) %>% 
+  merge(Bayley_data1, by = "fcn_no") %>% 
+  mutate(
+    dob = mdy(dob),  # Convert 'dob' to Date format
+    cal_date = dmy(cal_date),  # Ensure 'cal_date' is in Date format
+    day_diff = as.numeric(cal_date - dob),
+    age_days = as.numeric(cal_date - dob),  # Difference in days
+    total_months = floor(time_length(interval(dob, cal_date), "months")),
+    age_months = total_months %% 12, 
+    age_years = time_length(interval(dob, cal_date), "years"),
+    age_days_remaining = as.numeric(cal_date - (dob %m+% months(total_months)))  # Remaining days after full months
+  )# Difference in days
+  
+#write.xlsx(Bayley_correction , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+# View the result
+#head(Bayley_correction)
+
+
+View(Bayley_correction)
+
+
+
+```
+
+
+```{r}
+Bayley_data2<-Bayley_data1 %>% mutate(
+    dob = mdy(dob),  # Convert 'dob' to Date format
+    cal_date = dmy(cal_date),  # Ensure 'cal_date' is in Date format
+    day_diff = as.numeric(cal_date - dob),
+    age_days = as.numeric(cal_date - dob),  # Difference in days
+    total_months = floor(time_length(interval(dob, cal_date), "months")),
+    age_months = total_months %% 12, 
+    age_years = time_length(interval(dob, cal_date), "years"),
+    age_days_remaining = as.numeric(cal_date - (dob %m+% months(total_months)))  # Remaining days after full months
+  ) %>% 
+  mutate(check=ifelse(age_days_remaining==cage_days,"Yes","No")) %>% 
+  filter(check=="No")
+
+write.xlsx(Bayley_data2 , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+#View(Bayley_data2)  
+
+```
+
+
+```{r}
+Ey_mother<-HH_survey_data %>% 
+  #filter(respondent_cat==8) %>% 
+  select(starts_with("s3_immun"),fcn_no,enu,enumid_oth,instanceID,survey_date,s3_immun_where_o,s3_immun_where_96,respondent_cat) %>% 
+  filter(s3_immun_where_96==1)
+
+View(Ey_mother)
+
+#write.xlsx(Ey_mother , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+```
+
+
+```{r}
+Motheh_raw<-NYU_LONGITUDINAL_raw_data_cleaning %>% 
+  filter(`Survey type`=="HH Survey" & `respondent category`=="1. Recruitment: Pregnant Women"&`Variable/Question`=="preg_1_week")
+
+
+
+Preg_month<-read_dta("Preg_month.dta") %>% 
+  left_join(Motheh_raw,by="instanceID")
+
+View(Preg_month)
+write.xlsx(Data_merge1 , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+```
+
+
+
+
+```{r}
+
+read_check <- readxl::read_xlsx("C:/Users/icddrb/Downloads/file68e817403ecf.xlsx")
+
+reject_file <- read_csv("C:/Users/icddrb/Downloads/rejected_fixes_1.csv")
+
+reject_file <- reject_file %>% rename(instanceID = unique_id)
+
+
+Data_merge<-right_join(read_check,reject_file,by="instanceID")
+
+library(dplyr)
+
+Data_merge <- reject_file %>%
+  filter(database == "medtech") %>%
+  merge(NYU_LONGITUDINAL_raw_data_cleaning, by = "instanceID") %>%
+  mutate(check = if_else(icddrb_serial == `Serial No.`, "Yes", "No")) %>% 
+  filter(check=="Yes")
+
+table(Data_merge$check)
+
+
+
+Data_merge <- Data_merge %>%
+  mutate(respondent_category_num = case_when(
+    `respondent category` == "1. Recruitment: Pregnant Women" ~ 1,
+    `respondent category` == "2. Recruitment: Husbands/Father" ~ 2,
+    `respondent category` == "31. Recruitment: EY child" ~ 31,
+    `respondent category` == "4. 3rd Trimester followup: Pregnant Women" ~ 4,
+    `respondent category` == "6. Birth follow up: Mothers" ~ 6,
+    `respondent category` == "61. Birth follow up: Children" ~ 61,
+    `respondent category` == "7. 6-month follow up: Mothers" ~ 7,
+    `respondent category` == "71. 6-month follow up: children" ~ 71,
+    TRUE ~ NA_real_  # for unexpected values
+  ))
+
+Data_merge1<-Bio_data %>% 
+  select(fcn_no,respondent_cat,instanceID) %>% 
+  merge(Data_merge,by="instanceID") %>% 
+  mutate(check1=if_else(respondent_cat==respondent_category_num,"Yes","No")) %>% 
+  filter(check1=="Yes")
+
+View(Data_merge1)
+count(Data_merge1)
+
+```
+
+
+```{r}
+file_path <- "C:/Users/icddrb/Downloads/Raw_data.xlsx"  
+Check_sheet <- read_excel(file_path, sheet = "Sheet1")
+
+Check_sheet<-Check_sheet %>% 
+  merge(NYU_LONGITUDINAL_raw_data_cleaning,by="instanceID")
+
+View(Check_sheet)
+table(Check_sheet$`Variable/Question.y`)
+
+Check_sheet1<-Check_sheet %>% 
+  filter(`Variable/Question.y`!="respondent_cat"|`Variable/Question.y`!="respondent_cat_ey")
+
+# Keep Only Duplicate Rows
+
+only_duplicates <- Check_sheet1 %>%
+  group_by(instanceID) %>%
+  filter(n() > 1) %>%
+  ungroup()
+
+View(only_duplicates)
+#write.xlsx(only_duplicates , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+```
+
+
+################## Data Compare 
+
+```{r}
+Care_correction<-NYU_LONGITUDINAL_raw_data_cleaning %>% 
+  filter(`Survey type`=="HH Survey") %>% 
+  full_join(HH_survey_data,by="instanceID")
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

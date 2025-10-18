@@ -1,0 +1,966 @@
+---
+title: "Code for bio data set"
+author: "Code for bio data set"
+date: "December 29, 2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+# Installing packages
+list.of.packages <- c("foreign", "psych", "reshape2", "dplyr", "ggplot2","tidyr", 
+                      "haven", "readxl", "tidyverse","dplR","gtsummary","gt","lubridate","officer","rmarkdown","gtExtras","flextable",
+                      "openxlsx", "Hmisc", "janitor", "lme4", "ggsci", "ggpubr", "lmerTest", "sjPlot", "sjmisc", "sjlabelled", "labelled", "codebook", "report", "data.table", "jcolors", "lessR", "lmeresampler", "MuMIn", "caret", "coefplot", "modelbased", "report", "see","effectsize", "performance", "parameters")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+# Loading packages
+lapply(list.of.packages, require, character.only = TRUE)
+
+
+
+```
+
+## Including Plots
+
+```{r}
+library(readxl)
+library(foreign)
+library(haven)
+library(dplR)
+library(tidyverse)
+library(labelled)
+library(survey)
+library(gtsummary)
+library(gt)
+library(lubridate)
+library(gmodels)
+library(gt)
+library(dplyr)
+library(janitor)
+library(openxlsx)
+library(officer)
+library(flextable)
+library(rmarkdown)
+library(knitr)
+library(psych)
+library(irr)
+library(gtExtras)
+library(ggplot2)
+library(lubridate)
+library(labelled)
+library(haven)
+```
+
+
+
+```{r}
+
+file_path1 <- "H:/My Drive/NYU_LONGITUDINAL_raw_data_cleaning_2023.xlsx"
+
+Bio_data<-read_dta("H:/.shortcut-targets-by-id/10GfELvbVWTnThBtJs-WKEAmKwWDCBjeu/Clean Dataset/2_Data_file/HH_Survey_Bio_data.dta")
+
+
+excel_file_path1 <-  "C:/Users/icddrb/Desktop/NYU_Data"
+
+
+```
+
+Duplicates check in the data set
+
+```{r}
+# Define the respondent categories you want to check
+respondent_categories <- c(1,2, 4, 6,61,7, 71,31)
+# Initialize an empty list to store the results
+duplicates_list <- list()
+# Loop over each respondent category and find duplicates
+for(cat in respondent_categories) {
+duplicates <- Bio_data %>%
+  filter(buccal_swab_only != 1 |is.na(!buccal_swab_only)) %>% 
+  #filter(weight_adult!=999) %>% 
+filter(respondent_cat == cat) %>%
+group_by(fcn_no) %>%
+filter(n() > 1) %>%
+ungroup() %>%
+distinct(fcn_no)
+# Store the result in the list with the category as the name
+duplicates_list[[paste0("respondent_cat_", cat)]] <- duplicates
+}
+# View the results for each category
+duplicates_list
+
+```
+
+FCN Number check 
+
+
+```{r}
+RE_Pregnant_women<-Bio_data %>% 
+  filter(respondent_cat==1) %>% 
+  filter(weight_adult!=999) %>% 
+  filter(buccal_swab_only==0|buccal_swab_only==2|is.na(!buccal_swab_only)) %>% 
+  select(fcn_no,respondent_cat,buccal_swab_only)
+
+
+Check_fcn_no<-RE_Pregnant_women %>% 
+  full_join(Bio_data,by="fcn_no") %>% 
+  filter((respondent_cat.x!=1)) %>% 
+  select(fcn_no,instanceID,survey_date,enu,respondent_cat.y)
+
+View(Check_fcn_no)
+
+
+
+```
+
+Count  Check Bio data set 
+
+
+```{r}
+library(dplyr)
+
+Respondent_cat <- Bio_data %>%
+  filter(buccal_swab_only != 1 |is.na(!buccal_swab_only)) %>%
+  #filter(weight_adult != 999) %>%
+  select(respondent_cat, restype,buccal_swab_only,fcn_no,enu,enumid_oth,cal_date,any_comments,saliva_id,saliva_amount,instanceID) 
+#View(Respondent_cat)
+table(Respondent_cat$respondent_cat, Respondent_cat$restype)
+
+
+```
+
+Use enrollment sheet for bio check
+
+
+```{r}
+
+Enrolment<-read_dta("enrolment_sheet.dta")
+
+Tbl_summary<-Enrolment %>% 
+  select(-fcn_no) %>% 
+  tbl_summary(by="restype")
+
+##### Check rnda_data
+
+Rnda_Mother_enrolment<-Enrolment %>% 
+  #filter(Status_Bayley_mother=="Done") %>% 
+  select(fcn_no,Status_Bayley_mother)
+ 
+
+Rnda_mother_bio<-Respondent_cat %>% 
+  filter(respondent_cat==7) %>% 
+  full_join(Rnda_Mother_enrolment,by="fcn_no") %>% 
+  filter(is.na(Status_Bayley_mother)|is.na(respondent_cat))
+  
+View(Rnda_mother_bio)
+
+
+```
+
+PID Data 
+
+
+
+```{r}
+
+twinty_month_Bio_mother <- Bio_data %>%
+  filter(respondent_cat == 6) %>%
+  filter(buccal_swab_only != 1 | is.na(buccal_swab_only)) %>%
+  filter(mirage_pid_1 != 999) %>%
+  select(respondent_cat, fcn_no, mirage_pid_1, mirage_pid_2, survey_date, twin_info_count) %>%
+  rename(respondent_cat_twinty = respondent_cat, survey_date_twinty = survey_date,mirage_pid_1_twin=mirage_pid_1,mirage_pid_2_twin=mirage_pid_2)  # Swapped names
+
+
+Six_month_Bio_mother <- Bio_data %>%
+  filter(respondent_cat==7) %>% 
+  filter(buccal_swab_only != 1 |is.na(!buccal_swab_only)) %>%
+  filter(mirage_pid_1 != 999) %>%
+  select(respondent_cat,fcn_no,mirage_pid_1,mirage_pid_2,survey_date,twin_info_count) %>% 
+  rename(respondent_cat_six = respondent_cat, survey_date_six = survey_date,mirage_pid_1_six=mirage_pid_1,mirage_pid_2_aix=mirage_pid_2) 
+
+third_trimester <- Bio_data %>%
+  filter(respondent_cat == 4) %>%
+  filter(buccal_swab_only != 1 | is.na(buccal_swab_only)) %>%
+  filter(mirage_pid_1 != 999) %>%
+  select(respondent_cat, fcn_no, mirage_pid_1, mirage_pid_2, survey_date) %>%
+  rename(respondent_cat_third = respondent_cat, survey_date_third = survey_date,mirage_pid_1_third=mirage_pid_1)  # Swapped names
+
+RE_Pregnant_women<-Bio_data %>% 
+  filter(respondent_cat==1) %>% 
+  filter(weight_adult!=999) %>% 
+  filter(buccal_swab_only==0|buccal_swab_only==2|is.na(!buccal_swab_only)) %>% 
+  select(fcn_no,respondent_cat,mirage_pid_1,survey_date)%>%
+  rename(respondent_cat_pw = respondent_cat, survey_date_pw = survey_date,mirage_pid_1_pw=mirage_pid_1)
+
+#View(Six_month_Bio_mother)
+
+Re_pw<-HH_survey_data %>% 
+  filter(respondent_cat==1) %>% 
+  select(fcn_no,instanceID) %>% 
+  full_join(Six_month_Bio_mother,by="fcn_no") %>% 
+  full_join(third_trimester,by="fcn_no") %>% 
+  full_join(twinty_month_Bio_mother,by="fcn_no") %>% 
+  full_join(RE_Pregnant_women,by="fcn_no")
+write.xlsx(Re_pw , excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+```
+
+
+```{r}
+library(dplyr)
+library(openxlsx)
+
+# Define reusable filter condition
+buccal_filter <- quote(buccal_swab_only != 1 | is.na(buccal_swab_only))
+
+# Filter and rename data for each category
+filter_and_rename <- function(data, cat, suffix) {
+  data %>%
+    filter(respondent_cat == cat, !!buccal_filter, mirage_pid_1 != 999) %>%
+    select(respondent_cat, fcn_no, mirage_pid_1, mirage_pid_2, survey_date, twin_info_count) %>%
+    rename_with(~ paste0(., "_", suffix), -
+```
+
+
+```{r}
+fcn_no
+```
+
+
+```{r}
+)
+}
+
+twinty_month_Bio_mother <- filter_and_rename(Bio_data, 6, "twinty")
+Six_month_Bio_mother <- filter_and_rename(Bio_data, 7, "six")
+third_trimester <- filter_and_rename(Bio_data, 4, "third")
+
+RE_Pregnant_women <- Bio_data %>%
+  filter(respondent_cat == 1, weight_adult != 999, buccal_swab_only %in% c(0, 2) | is.na(buccal_swab_only)) %>%
+  select(fcn_no, respondent_cat, mirage_pid_1, survey_date) %>%
+  rename_with(~ paste0(., "_pw"), -fcn_no)
+
+#Merge data sets
+Re_pw <- HH_survey_data %>%
+  filter(respondent_cat == 1) %>%
+  select(fcn_no, instanceID) %>%
+  full_join(Six_month_Bio_mother, by = "fcn_no") %>%
+  full_join(third_trimester, by = "fcn_no") %>%
+  full_join(twinty_month_Bio_mother, by = "fcn_no") %>%
+  full_join(RE_Pregnant_women, by = "fcn_no")
+
+# Export to Excel
+write.xlsx(SaliVa_id_check, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+```
+
+Check Bayley & Mohter data
+
+
+```{r}
+Six_Month_mother<- Bio_data %>% 
+  filter(respondent_cat==7) %>% 
+  filter(!!buccal_filter) %>% 
+  select(fcn_no,enu,enumid_oth,respondent_cat)
+
+Six_Month_child<- Bio_data %>% 
+  filter(respondent_cat==71) %>% 
+  filter(!!buccal_filter) %>% 
+  select(fcn_no,enu,enumid_oth,respondent_cat)  
+
+
+Check<-full_join(Six_Month_mother,Six_Month_child,by="fcn_no") %>% 
+  filter(is.na(respondent_cat.x)|is.na(respondent_cat.y))
+
+
+Mother_check<-merge(Check,Enrolment,by="fcn_no") %>% 
+  select(-c(Cause_Mother_rnda_bio,Cause_child_rnda_bio,Cause_Rnda,))
+
+
+```
+
+```{r}
+
+SaliVa_id_check<-Respondent_cat %>% 
+  select(fcn_no,instanceID,survey_date,enumid_oth,enu,saliva_id,saliva_amount,saliva_a,saliva_amount_a,saliva_b,saliva_amount_b,saliva_id_adult,saliva_amount_adult,buccal_sample_ID_1,buccal_sample_ID_2,buccal_swab_only,respondent_cat)
+
+```
+
+PID Data file & Bio Data File
+
+
+
+```{r}
+# Specify the file path
+file_path1 <- "H:/My Drive/PID Sent for Analysis.xlsx"
+
+PID_data_set <- read_excel(file_path1, sheet = "Sheet1")
+
+```
+
+
+```{r}
+RE_PW_bio <- Bio_data %>%
+  filter(buccal_swab_only != 1 |is.na(!buccal_swab_only)) %>%
+  filter(weight_adult != 999) %>%
+  select(respondent_cat, restype,instanceID,survey_date,fcn_no,enu,enumid_oth,mirage_pid_1) %>% 
+  filter(respondent_cat==1)
+#table(RE_PW_bio$respondent_cat,RE_PW_bio$restype)
+data<-full_join(PID_data_set,RE_PW_bio,by="fcn_no")
+#View(data)
+write.xlsx(data, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+
+HH_Pw<-HH_survey_data %>% 
+  select(fcn_no,enu,enumid_oth,instanceID,survey_date,respondent_cat) %>% 
+  filter(respondent_cat==7) 
+  
+data<-full_join(PID_data_set,HH_Pw,by="fcn_no")
+#View(data)
+write.xlsx(data, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+
+
+
+```
+
+
+```{r}
+Tween_eight_days_mother <- Bio_data %>%
+  #filter(buccal_swab_only != 1 |is.na(!buccal_swab_only)) %>%
+  #filter(weight_adult != 999) %>%
+  select(respondent_cat, restype,instanceID,survey_date,fcn_no,enu,enumid_oth,mirage_pid_1,mirage_pid_2) %>% 
+  filter(respondent_cat==4)
+#table(RE_PW_bio$respondent_cat,RE_PW_bio$restype)
+data<-full_join(PID_data_set,RE_PW_bio,by="fcn_no")
+write.xlsx(data, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+```
+
+
+```{r}
+Six_bio<- Bio_data %>%
+  filter(buccal_swab_only != 1 |is.na(!buccal_swab_only)) %>%
+  #filter(weight_adult != 999) %>%
+  select(respondent_cat, restype,instanceID,survey_date,fcn_no,enu,enumid_oth,mirage_pid_1,mirage_pid_2) %>% 
+  filter(respondent_cat==7)
+
+View(Six_bio)
+
+# Load the haven package
+library(haven)
+
+# Read the .dta file
+data <- read_dta("Six_month_foolow_up.dta")
+
+Join<-full_join(data,Six_bio,by="fcn_no") %>% 
+  filter(is.na(PID))
+
+write.xlsx(Join, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+View(Join)
+
+```
+
+
+Enrolment sheet check for bio data base
+
+```{r}
+Enrolment<-read_dta("enrolment_sheet.dta")
+
+Pw<- Bio_data %>%
+  filter(buccal_swab_only != 1 |is.na(!buccal_swab_only)) %>%
+  #filter(weight_adult != 999) %>% 
+  filter(respondent_cat==71) %>% 
+  select(fcn_no,enu,enumid_oth,survey_date,mirage_pid_1,mirage_pid_2,saliva_amount,saliva_amount_a,saliva_amount_b,instanceID,saliva_id,saliva_id_a,saliva_id_b,respondent_cat,buccal_sample_ID_1) %>% 
+  mutate(saliva_ID=as.numeric(saliva_id)) %>% 
+  filter(buccal_sample_ID_1!="") %>% 
+  filter(respondent_cat==1|respondent_cat==4|respondent_cat==6|respondent_cat==7)
+
+Pw_enrolment<-Enrolment %>% 
+  select(fcn_no,BAYLEY_Mother,GR:MonthChild_Bio_Cause) %>%# filter(BAYLEY_Mother=="Done") %>% 
+  full_join(Pw,by="fcn_no")
+
+Pw_enrolment<-Pw_enrolment %>% 
+  mutate(pid_chech=ifelse(saliva_id_b==Pw_BSaliva,"Yes","No")) %>% 
+  filter(pid_chech=="No")
+View(Pw_enrolment)
+
+write.xlsx(Pw_enrolment, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+
+```
+current_disease
+```{r}
+current_disease<-Bio_data %>% 
+  filter(respondent_cat==31) %>% 
+  select(starts_with("current_disease")) 
+
+current_disease<-current_disease %>% 
+  select(current_disease_1_1:current_disease_13_1) %>% 
+  tbl_summary()
+
+
+
+current_disease
+```
+
+chronic_disease
+```{r}
+#### Pregnant women chronic_disease &  current_disease
+library(writexl)
+#write_xlsx(table, "chronic_disease_summary.xlsx")  # Save to Excel
+
+# Create the summary table
+summary_table <- Bio_data %>% 
+  filter(respondent_cat==31) %>% 
+  filter(buccal_swab_only != 1 |is.na(!buccal_swab_only)) %>% 
+  filter(weight_adult!=999) %>% 
+  select(chronic_disease_1_1:chronic_disease_9_1, restype) %>%
+  tbl_summary(
+    by = "restype"
+    
+  )
+
+# Convert to a data frame and export
+summary_df <- as_tibble(summary_table$table_body)  # Extract the underlying data
+write_xlsx(summary_df, "chronic_disease_summary_Pregnant_women.xlsx")
+
+
+
+
+# Create the summary table
+summary_table <- Bio_data %>% 
+  filter(respondent_cat==1) %>% 
+  filter(buccal_swab_only != 1 |is.na(!buccal_swab_only)) %>% 
+  filter(weight_adult!=999) %>% 
+  select(current_disease_1_1:current_disease_13_1, restype) %>%
+  tbl_summary(
+    by = "restype"
+    
+  )
+
+# Convert to a data frame and export
+summary_df <- as_tibble(summary_table$table_body)  # Extract the underlying data
+write_xlsx(summary_df, "current_disease_summary_Pregnant_women.xlsx")
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+```{r}
+library(writexl)
+####Father  chronic_disease
+# Create the summary table
+summary_table <- Bio_data %>% 
+  filter(respondent_cat==31) %>% 
+  filter(is.na(buccal_swab_only)|buccal_swab_only==0|buccal_swab_only==2) %>% 
+  #filter(weight_adult!=999) %>% 
+  select(chronic_disease_1_1:chronic_disease_9_1, restype) %>%
+  tbl_summary(
+    by = "restype"
+    
+  )
+summary_table
+# Convert to a data frame and export
+summary_df <- as_tibble(summary_table$table_body)  # Extract the underlying data
+write_xlsx(summary_df, "chronic_disease_summary_Father.xlsx")
+
+
+
+
+library(writexl)
+####Father  chronic_disease
+# Create the summary table
+summary_table <- Bio_data %>% 
+  filter(respondent_cat==31) %>% 
+  filter(is.na(buccal_swab_only)|buccal_swab_only==0|buccal_swab_only==2) %>% 
+  #filter(weight_adult!=999) %>% 
+  select(current_disease_1_1:current_disease_13_1, restype) %>%
+  tbl_summary(
+    by = "restype"
+    
+  )
+summary_table
+# Convert to a data frame and export
+summary_df <- as_tibble(summary_table$table_body)  # Extract the underlying data
+write_xlsx(summary_df, "current_disease_summary_third.xlsx")
+
+```
+
+```{r}
+####Father  chronic_disease
+# Create the summary table
+summary_table <- Bio_data %>% 
+  filter(respondent_cat==61) %>% 
+  #filter(buccal_swab_only != 1 |is.na(!buccal_swab_only)) %>% 
+  #filter(weight_adult!=999) %>% 
+  select(chronic_disease_1_1:chronic_disease_9_1, restype) %>%
+  tbl_summary(
+    by = "restype"
+    
+  )
+summary_table
+# Convert to a data frame and export
+summary_df <- as_tibble(summary_table$table_body)  # Extract the underlying data
+write_xlsx(summary_df, "chronic_disease_summary_Father.xlsx")
+```
+
+```{r}
+####3rd Trimester  chronic_disease
+# Create the summary table
+library(writexl)
+summary_table <- Bio_data %>% 
+  filter(respondent_cat==7) %>% 
+  filter(buccal_swab_only != 1 |is.na(!buccal_swab_only)) %>% 
+  #filter(weight_adult!=999) %>% 
+  select(chronic_disease_1_1:chronic_disease_9_1, restype) %>%
+  tbl_summary(
+    by = "restype"
+    
+  )
+summary_table
+# Convert to a data frame and export
+summary_df <- as_tibble(summary_table$table_body)  # Extract the underlying data
+write_xlsx(summary_df, "chronic_disease_summary 6-month follow: child.xlsx")
+
+
+
+
+
+
+
+
+
+
+
+```
+
+```{r}
+
+```
+
+
+
+
+
+
+```{r}
+Twienty_child_me<-Bio_data %>% 
+  filter(respondent_cat==71) %>% 
+  select(fcn_no,enu,enumid_oth,instanceID,baby_weight1_1,baby_weight2_1,baby_weight3_1,baby_length1_1,baby_length2_1,baby_length3_1,baby_circum1_1,baby_circum2_1,baby_circum3_1,baby_muac1_1,baby_muac2_1,baby_muac3_1,any_comments) %>% 
+  filter(!is.na(baby_weight1_1))
+View(Twienty_child_me)
+```
+
+
+
+```{r}
+Third_trimester<-Enrolment %>% 
+  filter(rdTrimester_Status=="Done") %>% 
+  select(CO: DJ,fcn_no)
+
+
+Third_trimester_bio<-Bio_data %>% 
+  filter(respondent_cat==4) %>% 
+  select(fcn_no,enu,respondent_cat,survey_date,mirage_pid_1,saliva_id ,saliva_amount, saliva_id_a, saliva_id_b ,saliva_amount_a ,saliva_amount_b, instanceID,buccal_sample_ID_1) %>% 
+  full_join(Third_trimester,by="fcn_no")
+
+write.xlsx(Third_trimester_bio, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+View(Third_trimester_bio)
+
+```
+
+
+```{r}
+Buccal<-Enrolment %>% 
+  select(fcn_no,BirthfollowupChildBiO_Bucca)
+Third_trimester_bio<-Bio_data %>% 
+  filter(respondent_cat==61|respondent_cat==71) %>% 
+  select(fcn_no,enu,respondent_cat,survey_date,mirage_pid_1,saliva_id ,saliva_amount,saliva_amount_adult, saliva_id_a, saliva_id_b ,saliva_amount_a ,saliva_amount_b, instanceID,buccal_sample_ID_1,buccal_sample_ID_2,twin_info_count) %>% 
+  filter(buccal_sample_ID_1!="") %>%full_join(Buccal,by="fcn_no") %>% 
+  mutate(buccal_sample_check=ifelse(buccal_sample_ID_1==BirthfollowupChildBiO_Bucca,"Yes","No")) %>% 
+  filter(buccal_sample_check=="No")#%>% group_by(buccal_sample_ID_1) %>%
+#filter(n() > 1) %>%
+#ungroup() %>%
+#distinct(buccal_sample_ID_1)
+
+ 
+  
+write.xlsx(Third_trimester_bio, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+
+View(Third_trimester_bio)
+```
+
+```{r}
+Buccal<-Enrolment %>% 
+  select(fcn_no,PW_BuccalcellsiSwab)
+
+Third_trimester_bio<-Bio_data %>% 
+  filter(respondent_cat==1|respondent_cat==7|respondent_cat==6) %>% 
+  select(fcn_no,enu,respondent_cat,survey_date,mirage_pid_1,saliva_id ,saliva_amount,saliva_amount_adult, saliva_id_a, saliva_id_b ,saliva_amount_a ,saliva_amount_b, instanceID,buccal_sample_ID_1) %>% 
+  filter(buccal_sample_ID_1!="")%>%full_join(Buccal,by="fcn_no") %>% 
+  mutate(buccal_sample_check=ifelse(buccal_sample_ID_1==PW_BuccalcellsiSwab,"Yes","No")) %>% 
+  filter(buccal_sample_check=="No") 
+
+
+
+
+
+View(Third_trimester_bio)
+```
+###### Father Buccal swab Check
+
+```{r}
+Father<-Bio_data %>% 
+  filter(respondent_cat==2) %>% 
+  select(fcn_no,enu,enumid_oth,respondent_cat,survey_date,mirage_pid_1,saliva_id , instanceID,buccal_sample_ID_1) %>% 
+  filter(buccal_sample_ID_1!="")
+
+
+Data_merge_enrrolment <- Enrolment %>% 
+  select(fcn_no, Father_Status:BN) %>% 
+  filter(Father_Status == "Done") %>% 
+  full_join(Father, by = "fcn_no") %>%
+  mutate(check = ifelse(buccal_sample_ID_1 == Father_BuccalcellsiSwab, "Yes", "No")) %>% 
+  filter(check == "No")
+
+
+#write.xlsx(Data_merge_enrrolment, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+View(Data_merge_enrrolment)
+```
+
+
+
+########## Idela Child
+```{r}
+Father<-Bio_data %>% 
+  filter(respondent_cat==31) %>% 
+  select(fcn_no,enu,enumid_oth,respondent_cat,survey_date,mirage_pid_1,saliva_id , instanceID,buccal_sample_ID_1) %>% 
+  filter(buccal_sample_ID_1!="")
+
+
+Data_merge_enrrolment <- Enrolment %>% 
+  select(fcn_no, IDELA_enu:IDELAMothers_Status) %>% 
+  filter(IDELAMothers_Status == "Done") %>% 
+  full_join(Father, by = "fcn_no") %>%
+  mutate(check = ifelse(buccal_sample_ID_1 == IDELA_BuccalcellsiSwab, "Yes", "No")) %>% 
+  filter(check == "No")
+
+
+write.xlsx(Data_merge_enrrolment, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+View(Data_merge_enrrolment)
+```
+
+###Birth  follow up child
+
+```{r}
+Father<-Bio_data %>% 
+  filter(respondent_cat==61) %>% 
+  select(fcn_no,enu,enumid_oth,respondent_cat,survey_date,mirage_pid_1,saliva_id , instanceID,buccal_sample_ID_1) %>% 
+  filter(buccal_sample_ID_1!="")
+
+
+Data_merge_enrrolment <- Enrolment %>% 
+  select(fcn_no, BirthfollowupMothers:BFC_Child_bio) %>% 
+  filter(BFC_Child_bio == "Done") %>% 
+  full_join(Father, by = "fcn_no") %>%
+  mutate(check = ifelse(buccal_sample_ID_1 == BirthfollowupChildBiO_Bucca, "Yes", "No")) %>% 
+  filter(check == "No")
+
+
+write.xlsx(Data_merge_enrrolment, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+View(Data_merge_enrrolment)
+```
+
+### Six Month follow-up child
+
+```{r}
+Father<-Bio_data %>% 
+  filter(respondent_cat==71) %>% 
+  select(fcn_no,enu,enumid_oth,respondent_cat,survey_date,mirage_pid_1,saliva_id , instanceID,buccal_sample_ID_1) %>% 
+  filter(buccal_sample_ID_1!="")
+
+
+Data_merge_enrrolment <- Enrolment %>% 
+  select(fcn_no, Status_Bayley:BFC_Child_bio) %>% 
+  filter(BFC_Child_bio == "Done") %>% 
+  full_join(Father, by = "fcn_no") %>%
+  mutate(check = ifelse(buccal_sample_ID_1 == BirthfollowupChildBiO_Bucca, "Yes", "No")) %>% 
+  filter(check == "No")
+
+
+write.xlsx(Data_merge_enrrolment, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+View(Data_merge_enrrolment)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+Father<-Bio_data %>% 
+  filter(respondent_cat==7) %>% 
+  select(fcn_no,enu,enumid_oth,respondent_cat,survey_date,mirage_pid_1,saliva_id, saliva_id_a,saliva_id_b,instanceID,buccal_sample_ID_1) %>% 
+  filter(buccal_sample_ID_1!="")
+
+
+Data_merge_enrrolment <- Enrolment %>% 
+  select(fcn_no, EY:HF) %>% 
+  filter(MonthMother_Bio_Cause == "Done") %>% 
+  full_join(Father, by = "fcn_no") %>%
+  mutate(check = ifelse(mirage_pid_1 == BAYLEY_Mother_TempTop, "Yes", "No")) %>% 
+  filter(check == "No")
+
+
+write.xlsx(Data_check, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+View(Data_merge_enrrolment)
+```
+
+
+
+
+```{r}
+Data_check<- Bio_data %>% 
+  filter(buccal_sample_ID_1=="DST143926") %>% 
+  select(fcn_no,enu,respondent_cat,survey_date,buccal_sample_ID_1,buccal_sample_ID_2,twin_info_count,instanceID)
+View(Data_check)
+```
+
+
+
+
+```{r}
+Buccal<-Enrolment %>% 
+  select(fcn_no,Father_BuccalcellsiSwab)
+
+Third_trimester_bio<-Bio_data %>% 
+  filter(respondent_cat==2) %>% 
+  select(fcn_no,enu,respondent_cat,survey_date,mirage_pid_1,saliva_id ,saliva_amount,saliva_amount_adult, saliva_id_a, saliva_id_b ,saliva_amount_a ,saliva_amount_b, instanceID,buccal_sample_ID_1) %>% 
+  filter(buccal_sample_ID_1!="")%>%full_join(Buccal,by="fcn_no") %>% 
+  mutate(buccal_sample_check=ifelse(buccal_sample_ID_1==Father_BuccalcellsiSwab,"Yes","No")) %>% 
+  filter(buccal_sample_check=="No") 
+
+
+
+write.xlsx(Third_trimester_bio, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+
+View(Third_trimester_bio)
+```
+
+
+```{r}
+
+  
+Buccal_swab <- Bio_data %>%
+  select(fcn_no, enu, enumid_oth, survey_date, buccal_sample_ID_1, respondent_cat) %>%
+  filter(buccal_sample_ID_1 != "") %>%
+  filter(respondent_cat == 2)
+
+Pw_enrolment <- Enrolment %>%
+  select(PW_BuccalcellsiSwab, fcn_no, MTname,Father_BuccalcellsiSwab) %>%
+  full_join(Buccal_swab, by = "fcn_no") %>%  # Ensure "fcn_no" is a column in both datasets
+  mutate(check = if_else(buccal_sample_ID_1 == Father_BuccalcellsiSwab, "Yes", "No")) %>% 
+  filter(check=="No")
+View(Pw_enrolment)
+  
+```
+
+
+Check Temtom & BodyGuard Sheet
+
+```{r}
+
+file_path <- "C:/Users/icddrb/Downloads/Tracking_Temptop_Mirage_eSense_Bodyguard.xlsx"  
+Temtop_sheet <- read_excel(file_path, sheet = "Temptop")
+
+View(Temtop_sheet)
+table(Temtop_sheet$respondent_cat)
+```
+
+
+```{r}
+Temtop_Re_Mother <- Temtop_sheet %>%
+  filter(respondent_cat == "Pregnant Women") %>%
+  rename(
+    fcn_no = `FCN No./Holding`,
+    mirage_pid_1 = PID
+  ) %>%
+  full_join(RE_PW_bio, by = c("fcn_no" = "fcn_no", "mirage_pid_1" = "mirage_pid_1")) %>% 
+  filter(is.na(instanceID))
+
+  
+
+View(Temtop_Re_Mother)  
+
+#write.xlsx(Temtop_Re_Mother, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+ 
+check<-Temtop_Re_Mother %>%select(SL:survey_date.x) %>%  merge(RE_PW_bio, by = "fcn_no")
+View(check)
+
+```
+
+
+
+```{r}
+Temtop_Re_Mother <- Temtop_sheet %>%
+  filter(respondent_cat == "3rd Trimester followup") %>%
+  rename(
+    fcn_no = `FCN No./Holding`,
+    #mirage_pid_1 = PID
+  ) %>%
+  full_join(Tween_eight_days_mother, by = "fcn_no") %>% mutate(check=if_else(mirage_pid_1 == PID,"Yes","No")) %>% 
+  filter(check=="No")
+
+View(Temtop_Re_Mother)
+
+```
+
+
+Buccal Swab Id Check for all data
+
+
+
+```{r}
+
+Buccal_swab_all<-Bio_data %>% select(fcn_no,respondent_cat,buccal_swab_only,buccal_sample_ID_1,buccal_sample_ID_2,twin_info_count,instanceID,enu,enumid_oth,survey_date) %>% 
+  filter(buccal_sample_ID_1!="") %>% 
+  filter(buccal_sample_ID_1!="999")
+
+#view(Buccal_swab_all)
+
+Buccal_swab_sheet<-read_dta("C:/Users/icddrb/Desktop/NYU_Data/Buccal_swab_sheet.dta")
+
+
+check_buccal_swab<-full_join(Buccal_swab_sheet,Buccal_swab_all,by="buccal_sample_ID_1")
+
+check_buccal_swab1<-check_buccal_swab %>% mutate(fcn_no_check=ifelse(fcn_no.x==fcn_no.y,"Yes","No")) %>% 
+  filter(fcn_no_check!="Yes"|is.na(fcn_no_check))
+
+
+
+check_buccal_swab2<-check_buccal_swab %>% filter(is.na(fcn_no.x)) %>% rename(fcn_no=fcn_no.y) %>% 
+  filter(respondent_cat==61|respondent_cat==71) %>% select(-(fcn_no.x:DateofCollection),-(BuccalCell:recrtitment))
+
+
+check_buccal_swab3<-check_buccal_swab %>% filter(is.na(fcn_no.y))%>% rename(fcn_no=fcn_no.x) %>% 
+  mutate(respondent_cat = recrtitment)%>% 
+  filter(respondent_cat=="birth_follow_up") %>% select(-(buccal_swab_only:survey_date),fcn_no.y)
+
+
+check_buccal_swab4 <- full_join(
+  check_buccal_swab2,
+  check_buccal_swab3,
+  by = c("fcn_no")
+)
+
+
+view(check_buccal_swab4)
+
+write.xlsx(check_buccal_swab4, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+
+
+
+
+```
+
+
+### Bucccal _swab 1 & 2 Merge
+
+
+```{r}
+Buccal_swab_all<-Bio_data %>% select(fcn_no,respondent_cat,buccal_swab_only,buccal_sample_ID_1,buccal_sample_ID_2,twin_info_count,instanceID,enu,enumid_oth,survey_date) %>% 
+  filter(buccal_sample_ID_1!="") %>% 
+  filter(buccal_sample_ID_1!="999")
+
+
+Buccal_swab_all_1<-Buccal_swab_all %>% 
+  select(-buccal_sample_ID_2) 
+
+
+
+Buccal_swab_all_2<-Buccal_swab_all %>% 
+  filter(buccal_sample_ID_2!="") %>% 
+  select(-buccal_sample_ID_1) %>% 
+  rename(buccal_sample_ID_1=buccal_sample_ID_2) %>% 
+  filter(respondent_cat!=1) %>% 
+  filter(respondent_cat!=7)
+
+
+```
+
+
+```{r}
+### Append two data set
+
+library(dplyr)
+
+# Append the two data sets
+Buccal_swab_combined <- bind_rows(Buccal_swab_all_1, Buccal_swab_all_2)
+
+
+Buccal_sample<-read_dta("Buccal Sample Sheet Main.dta")
+
+
+Buccal_sample<-Buccal_sample %>% rename(buccal_sample_ID_1=SampleID)
+
+
+#### Check Buccal Sample ID
+
+
+check_buccal_swab<-full_join(Buccal_sample,Buccal_swab_combined,by="buccal_sample_ID_1") %>% 
+  mutate(Check_fcn_no=ifelse(respondentIDFCNHHID==fcn_no,"Yes","No")) %>% 
+  filter(Check_fcn_no=="No" | is.na(Check_fcn_no))
+
+write.xlsx(check_buccal_swab, excel_file_path1, sheetName = "Sheet1", rowNames = FALSE)
+View(check_buccal_swab)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
