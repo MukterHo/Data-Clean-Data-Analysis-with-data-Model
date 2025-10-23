@@ -1,0 +1,286 @@
+---
+title: "Caregiver Pailot data"
+author: "Mukter"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+
+
+```{r}
+
+library(readxl)
+library(foreign)
+library(haven)
+library(dplR)
+library(tidyverse)
+library(labelled)
+library(gtsummary)
+library(gt)
+library(lubridate)
+library(gt)
+library(dplyr)
+library(openxlsx)
+library(officer)
+library(flextable)
+library(rmarkdown)
+library(knitr)
+library(psych)
+library(ggplot2)
+library(lubridate)
+library(labelled)
+library(haven)
+
+```
+
+
+## Open the data set
+
+```{r}
+Caregiver_36Months_data <- read_dta("H:/.shortcut-targets-by-id/10GfELvbVWTnThBtJs-WKEAmKwWDCBjeu/Clean Dataset/2_Data_file/Caregiver_36Months_data.dta")
+
+
+```
+
+### Surevey duration time 
+
+```{r}
+# Convert to POSIXct and calculate duration
+Caregiver_36Months_data <- Caregiver_36Months_data  %>% 
+  mutate(
+    survey_s_time1 = parse_date_time(survey_s_time, orders = "I:M:S p"),
+    survey_e_time1 = parse_date_time(survey_e_time, orders = "I:M:S p"),
+    duration_minutes = as.numeric(difftime(survey_e_time1, survey_s_time1, units = "mins"))
+  )
+
+
+
+
+#View(Caregiver_36Months_data %>% select(submissiondate,survey_s_time,survey_e_time,duration_minutes,survey_date,enu,fcn_no))
+```
+
+
+
+### Show all section start & ENd time
+
+```{r}
+
+View(Caregiver_36Months_data %>% select(education_s_t ,education_e_t, environment_s_t ,environment_e_t, asset_s_t, asset_e_t, health_stat_s_t, health_stat_e_t, ecdprograms_s_t, ecdprograms_e_t, socialsup_s_t ,socialsup_e_t, mva_s_t_m ,mva_e_t_m ,htq4_s_time ,htq4_e_t ,function_s_t, function_e_t, ref_function_s_t, ref_function_e_t, psqi_s_t, psqi_e_t, rmhm_s_t, rmhm_e_t, stressors_s_time, stressors_e_time, cpas_s_time, cpas_e_time ,cbt_s_time, cbt_e_time, rcm_m_s_time, rcm_m_e_time, play_beliefs_s_time, play_beliefs_e_time, aspiration_s_time, aspiration_e_time, pss_s_time, pss_e_time))
+
+```
+
+
+
+## Have Different formate ,use one formate 
+
+
+```{r}
+
+Caregiver_36Months_data1 <- Caregiver_36Months_data %>%
+  mutate(
+    across(
+      ends_with("_s_time") | ends_with("_s_t") | ends_with("_s_t_m"),
+      ~ suppressWarnings(parse_date_time(
+        as.character(.),
+        orders = c("Y-m-d H-M", "Y-m-d H:M", "H:M:S p", "H:M p"),
+        tz = "Asia/Dhaka"
+      ))
+    ),
+    across(
+      ends_with("_e_time") | ends_with("_e_t") | ends_with("_e_t_m"),
+      ~ suppressWarnings(parse_date_time(
+        as.character(.),
+        orders = c("Y-m-d H-M", "Y-m-d H:M", "H:M:S p", "H:M p"),
+        tz = "Asia/Dhaka"
+      ))
+    )
+  )
+
+
+```
+
+
+## Keep only time section 
+
+
+```{r}
+library(dplyr)
+library(stringr)
+
+# List of time columns
+time_cols <- c("education_s_t","education_e_t",
+               "environment_s_t","environment_e_t",
+               "asset_s_t","asset_e_t",
+               "health_stat_s_t","health_stat_e_t",
+               "ecdprograms_s_t","ecdprograms_e_t",
+               "socialsup_s_t","socialsup_e_t",
+               "mva_s_t_m","mva_e_t_m",
+               "htq4_s_time","htq4_e_t",
+               "function_s_t","function_e_t",
+               "ref_function_s_t","ref_function_e_t",
+               "psqi_s_t","psqi_e_t",
+               "rmhm_s_t","rmhm_e_t",
+               "stressors_s_time","stressors_e_time",
+               "cpas_s_time","cpas_e_time",
+               "cbt_s_time","cbt_e_time",
+               "rcm_m_s_time","rcm_m_e_time",
+               "play_beliefs_s_time","play_beliefs_e_time",
+               "aspiration_s_time","aspiration_e_time",
+               "pss_s_time","pss_e_time")
+
+Caregiver_36Months_data1 <- Caregiver_36Months_data1 %>%
+  mutate(across(all_of(time_cols),
+                ~ str_extract(., "\\d{1,2}:\\d{2}:\\d{2}") ))  # extract HH:MM:SS
+
+
+
+```
+
+
+
+
+```{r}
+View(Caregiver_36Months_data1 %>%
+  select(education_s_t, education_e_t,
+         environment_s_t, environment_e_t,
+         asset_s_t, asset_e_t,
+         health_stat_s_t, health_stat_e_t,
+         ecdprograms_s_t, ecdprograms_e_t,
+         socialsup_s_t, socialsup_e_t,
+         mva_s_t_m, mva_e_t_m,
+         htq4_s_time, htq4_e_t,
+         function_s_t, function_e_t,
+         ref_function_s_t, ref_function_e_t,
+         psqi_s_t, psqi_e_t,
+         rmhm_s_t, rmhm_e_t,
+         stressors_s_time, stressors_e_time,
+         cpas_s_time, cpas_e_time,
+         cbt_s_time, cbt_e_time,
+         rcm_m_s_time, rcm_m_e_time,
+         play_beliefs_s_time, play_beliefs_e_time,
+         aspiration_s_time, aspiration_e_time,
+         pss_s_time, pss_e_time))
+
+```
+
+
+
+### Convert time section to date & time for duration 
+
+
+```{r}
+library(dplyr)
+library(lubridate)
+library(purrr)
+
+start_cols <- c("education_s_t","environment_s_t","asset_s_t","health_stat_s_t",
+                "ecdprograms_s_t","socialsup_s_t","mva_s_t_m","htq4_s_time",
+                "function_s_t","ref_function_s_t","psqi_s_t","rmhm_s_t",
+                "stressors_s_time","cpas_s_time","cbt_s_time","rcm_m_s_time",
+                "play_beliefs_s_time","aspiration_s_time","pss_s_time")
+
+end_cols <- c("education_e_t","environment_e_t","asset_e_t","health_stat_e_t",
+              "ecdprograms_e_t","socialsup_e_t","mva_e_t_m","htq4_e_t",
+              "function_e_t","ref_function_e_t","psqi_e_t","rmhm_e_t",
+              "stressors_e_time","cpas_e_time","cbt_e_time","rcm_m_e_time",
+              "play_beliefs_e_time","aspiration_e_time","pss_e_time")
+
+duration_cols <- paste0(gsub("_s_t","",start_cols), "_duration")
+
+Caregiver_36Months_data1 <- Caregiver_36Months_data1 %>%
+  mutate(across(all_of(c(start_cols, end_cols)), ~ as.POSIXct(., format="%H:%M:%S", tz="Asia/Dhaka"))) 
+
+
+```
+
+
+## Duration Miniuts
+
+```{r}
+Caregiver_36Months_data1 <- Caregiver_36Months_data1 %>%
+  mutate(
+    education_duration = as.numeric(difftime(education_e_t, education_s_t, units = "mins")),
+    environment_duration = as.numeric(difftime(environment_e_t, environment_s_t, units = "mins")),
+    asset_duration = as.numeric(difftime(asset_e_t, asset_s_t, units = "mins")),
+    health_stat_duration = as.numeric(difftime(health_stat_e_t, health_stat_s_t, units = "mins")),
+    ecdprograms_duration = as.numeric(difftime(ecdprograms_e_t, ecdprograms_s_t, units = "mins")),
+    socialsup_duration = as.numeric(difftime(socialsup_e_t, socialsup_s_t, units = "mins")),
+    mva_duration = as.numeric(difftime(mva_e_t_m, mva_s_t_m, units = "mins")),
+    htq4_duration = as.numeric(difftime(htq4_e_t, htq4_s_time, units = "mins")),
+    function_duration = as.numeric(difftime(function_e_t, function_s_t, units = "mins")),
+    ref_function_duration = as.numeric(difftime(ref_function_e_t, ref_function_s_t, units = "mins")),
+    psqi_duration = as.numeric(difftime(psqi_e_t, psqi_s_t, units = "mins")),
+    rmhm_duration = as.numeric(difftime(rmhm_e_t, rmhm_s_t, units = "mins")),
+    stressors_duration = as.numeric(difftime(stressors_e_time, stressors_s_time, units = "mins")),
+    cpas_duration = as.numeric(difftime(cpas_e_time, cpas_s_time, units = "mins")),
+    cbt_duration = as.numeric(difftime(cbt_e_time, cbt_s_time, units = "mins")),
+    rcm_m_duration = as.numeric(difftime(rcm_m_e_time, rcm_m_s_time, units = "mins")),
+    play_beliefs_duration = as.numeric(difftime(play_beliefs_e_time, play_beliefs_s_time, units = "mins")),
+    aspiration_duration = as.numeric(difftime(aspiration_e_time, aspiration_s_time, units = "mins")),
+    pss_duration = as.numeric(difftime(pss_e_time, pss_s_time, units = "mins"))
+  )
+
+```
+
+
+### Keep only duration miniuts & Merage main data set
+
+
+
+```{r}
+Caregiver_36Months_data1<-Caregiver_36Months_data1 %>% select(fcn_no,education_duration,environment_duration,asset_duration,health_stat_duration,ecdprograms_duration,socialsup_duration,mva_duration,htq4_duration,function_duration,ref_function_duration,psqi_duration,rmhm_duration,stressors_duration,cpas_duration,cbt_duration,rcm_m_duration,play_beliefs_duration,aspiration_duration,pss_duration)
+
+
+Caregiver_36Months_data<-Caregiver_36Months_data %>% full_join(Caregiver_36Months_data1,by="fcn_no")
+
+
+```
+
+
+## Show section start & end with duration miniuts
+
+```{r}
+# Automatically select all start, end, and duration columns
+cols_to_view <- c(
+  grep("_s_t$", names(Caregiver_36Months_data), value = TRUE),
+  grep("_e_t$", names(Caregiver_36Months_data), value = TRUE),
+  grep("_duration$", names(Caregiver_36Months_data), value = TRUE)
+)
+
+View(Caregiver_36Months_data %>% select(all_of(cols_to_view)))
+
+```
+
+
+```{r}
+View(
+  Caregiver_36Months_data %>%
+    select(submissiondate,survey_s_time,survey_e_time,duration_minutes,survey_date,enu,fcn_no,
+      education_s_t, education_e_t, education_duration,
+      environment_s_t, environment_e_t, environment_duration,
+      asset_s_t, asset_e_t, asset_duration,
+      health_stat_s_t, health_stat_e_t, health_stat_duration,
+      ecdprograms_s_t, ecdprograms_e_t, ecdprograms_duration,
+      socialsup_s_t, socialsup_e_t, socialsup_duration,
+      mva_s_t_m, mva_e_t_m, mva_duration,
+      htq4_s_time, htq4_e_t, htq4_duration,
+      function_s_t, function_e_t, function_duration,
+      ref_function_s_t, ref_function_e_t, ref_function_duration,
+      psqi_s_t, psqi_e_t, psqi_duration,
+      rmhm_s_t, rmhm_e_t, rmhm_duration,
+      stressors_s_time, stressors_e_time, stressors_duration,
+      cpas_s_time, cpas_e_time, cpas_duration,
+      cbt_s_time, cbt_e_time, cbt_duration,
+      rcm_m_s_time, rcm_m_e_time, rcm_m_duration,
+      play_beliefs_s_time, play_beliefs_e_time, play_beliefs_duration,
+      aspiration_s_time, aspiration_e_time, aspiration_duration,
+      pss_s_time, pss_e_time, pss_duration
+    )
+)
+
+
+```
+
+
+

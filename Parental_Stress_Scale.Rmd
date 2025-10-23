@@ -84,17 +84,17 @@ PSS_data %>% select(starts_with("pss_")) %>%tbl_summary()
 ### Scale Scorring
 
 ```{r}
-# Convert labels into numeric scores for pss_1 … pss_11
+
+
 PSS_data <- PSS_data %>%
-  mutate(across(starts_with("pss_"),
-                ~recode(as.character(.),
-                        "Almost never"              = 1,
-                        "Less than half of the time"= 2,
-                        "More than half of the time"= 4,
-                        "Almost always"             = 5,
-                        "Refused"                   = NA_real_,
-                        "Don't know"                = NA_real_
-                ) %>% as.numeric()))
+  mutate(across(starts_with("pss_"), ~ case_when(
+    . == "Almost never" ~ 1,
+    . == "Less than half of the time" ~ 2,
+    . == "More than half of the time" ~ 4,
+    . == "Almost always" ~ 5,
+    . %in% c("Refused", "Don't know") ~ NA_real_,
+    TRUE ~ as.numeric(.)
+  )))
 
 
 
@@ -136,6 +136,63 @@ summary(PSS_data$PSS_total)
 mean_pss
 sd_pss
 ```
+
+########## SUmmary By difference type of category
+
+```{r}
+
+PSS_data %>%
+  select(respondent_cat, PSS_total) %>%
+  tbl_summary(
+    by = respondent_cat,
+    statistic = list(all_continuous() ~ "{mean} ± {sd}"),
+    digits = all_continuous() ~ 2,
+    missing = "no"
+  ) %>%
+  bold_labels()
+
+```
+
+
+############# EY Mother 
+
+```{r}
+Aspiration_data<-HH_survey_data %>% filter(respondent_cat==3) %>% select(fcn_no,aspiration_1,aspiration_2)
+
+PSS_data1<-PSS_data %>% filter(respondent_cat==3) %>% full_join(Aspiration_data,by="fcn_no")
+
+```
+
+#### Data Cleaning
+
+
+```{r}
+PSS_data1<-PSS_data1 %>% filter(aspiration_1!=88)
+
+```
+
+### Check The outcome result
+
+
+```{r}
+# Convert all aspiration variables to factors with labels
+PSS_data1 <- PSS_data1 %>%
+  mutate(across(starts_with("aspiration"), ~as_factor(.)))
+
+
+table(PSS_data1$aspiration_1,PSS_data1$PSS_total)
+```
+
+
+
+
+
+
+
+
+
+
+
 
 
 

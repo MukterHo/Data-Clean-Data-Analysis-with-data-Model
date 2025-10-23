@@ -366,24 +366,85 @@ Mother_join_data %>%
 ```
 
 
+Mother & Child Bodyguard data 
+
+```{r}
+Mother_child_bodugard <- Mother_physio %>%
+  select(fcn_no,instanceid,pid,c(body_es_st:body_es_et))
+
+View(Mother_child_bodugard)
+
+#library(writexl)
+
+#write_xlsx(Mother_child_bodugard, "Mother_child_bodugard.xlsx")
+
+
+```
 
 
 
 
 
 
+### Child physio
+
+
+
+```{r}
+# Convert to POSIXct and calculate duration
+Child_physio <- physio_data %>%filter(respondent_cat==101) %>% 
+  mutate(
+    survey_s_time = parse_date_time(survey_s_time, orders = "I:M:S p"),
+    survey_e_time = parse_date_time(survey_e_time, orders = "I:M:S p"),
+    duration_minutes = as.numeric(difftime(survey_e_time, survey_s_time, units = "mins"))
+  )
 
 
 
 
+View(Child_physio %>% select(survey_s_time,survey_e_time,duration_minutes))
+
+```
 
 
 
+```{r}
+Child_physio %>% select(restype,res_age,drink_tea_1,brush_teeth_1,dental_work_1,any_medicine_1,oral_injury_1,betel_leaf_1,smoke_1,chronic_disease_1_1,chronic_disease_2_1,chronic_disease_3_1,chronic_disease_4_1,chronic_disease_5_1,chronic_disease_6_1,chronic_disease_7_1,chronic_disease_8_1,chronic_disease_9_1,chronic_disease_oth_1,current_disease_1_1,current_disease_2_1,current_disease_3_1,current_disease_4_1,current_disease_5_1,current_disease_6_1,current_disease_8_1,current_disease_9_1,current_disease_10_1,current_disease_11_1,current_disease_12_1,current_disease_13_1,current_disease_other_1,systolic_pressure_1,diastolic_pressure_1,systolic_pressure_2,diastolic_pressure_2,any_illness_1,any_illness_2,any_illness_3,any_illness_4,any_illness_5,any_illness_6,any_illness_oth) %>% tbl_summary()
+```
+
+
+### Child Age Month
+
+```{r}
+
+Child_physio<-Child_physio %>% mutate(child_age_month=res_age_day/30+res_age_month)
+
+```
+
+###Total Saliva Amount
+
+
+```{r}
+
+Child_physio<-Child_physio %>% mutate(saliva_Amount_total=saliva_amount+saliva_amount_a)
+View(Child_physio %>%select(saliva_Amount_total))
+summary(Child_physio$saliva_Amount_total)
+sd(Child_physio$saliva_Amount_total)
+```
 
 
 
+```{r}
+library(openxlsx)
+data_42002 <- read.xlsx("C:/Users/icddrb/Downloads/42002_data.xlsx")
 
+```
 
+```{r}
+data_42002<- as.POSIXct(data_42002$timestamp, format = "%Y-%m-%d %H:%M:%S")
+view(data_42002)
+
+```
 
 
 

@@ -953,6 +953,124 @@ View(check_buccal_swab)
 
 ```
 
+Sample Tempareture Check
+
+
+```{r}
+
+Bio_s_t <- Bio_data %>%
+  select(fcn_no, sample_temp, sample_temp_adult, arrival_temperature, arrival_temp_room, respondent_cat, survey_date,saliva_amount_adult,saliva_amount,saliva_amount_a,saliva_amount_b) %>%
+  mutate(
+    sample_temp_all = ifelse(!is.na(sample_temp), sample_temp, sample_temp_adult)
+  ) %>%
+  filter(sample_temp_all > 0, sample_temp_all < 30) %>%
+  mutate(
+    sample_temp_Category = ifelse(sample_temp_all <= 8, "A", "B"),
+    date = mdy(survey_date),      # Convert to Date
+    Month = month(date),          # Extract month number
+    Year = year(date)             # Extract year
+  )
+
+
+
+Bio_s_t <- Bio_s_t %>%
+  mutate(
+    saliva_amount_all = ifelse(
+      !is.na(saliva_amount) | !is.na(saliva_amount_a) | !is.na(saliva_amount_b),
+      rowSums(across(c(saliva_amount, saliva_amount_a, saliva_amount_b)), na.rm = TRUE),
+      saliva_amount_adult
+    )
+  )
+
+
+
+
+
+
+
+
+
+
+Bio_s_t %>% 
+  filter(sample_temp_Category == "B") %>% 
+  View()
+
+
+Bio_s_t_B<-Bio_s_t %>% filter(sample_temp_Category == "B")
+
+
+
+
+
+```
+
+
+
+
+```{r}
+library(ggplot2)
+
+ggplot(Bio_s_t_B, aes(x = as.factor(Month), fill = as.factor(Year))) +
+  geom_bar(position = position_dodge(width = 0.9)) +
+  geom_text(
+    stat = "count",
+    aes(label = ..count..),
+    position = position_dodge(width = 0.9),
+    vjust = -0.3,
+    size = 3
+  ) +
+  labs(
+    title = "Month and Year-wise Distribution of Samples",
+    x = "Month",
+    y = "Count",
+    fill = "Year"
+  ) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2")
+
+
+```
+
+######## Parents & Child salive Mean 
+
+
+
+```{r}
+
+
+Bio_s_t<-Bio_s_t %>% filter(saliva_amount_all<20) %>% filter(saliva_amount_all>0)
+
+
+
+
+
+Bio_s_M<-Bio_s_t %>% filter(respondent_cat==1 |respondent_cat==4|respondent_cat==6| respondent_cat==7 )
+
+
+Bio_s_F<-Bio_s_t %>% filter(respondent_cat==2  )
+
+Bio_s_C<-Bio_s_t %>% filter(respondent_cat==61 |respondent_cat==71 )
+
+
+
+summary(Bio_s_M$saliva_amount_all)
+summary(Bio_s_F$saliva_amount_all)
+summary(Bio_s_C$saliva_amount_all)
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
 
 
 
