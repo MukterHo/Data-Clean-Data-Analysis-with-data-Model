@@ -47,6 +47,7 @@ Caregiver_36Months_data <- read_dta("H:/.shortcut-targets-by-id/10GfELvbVWTnThBt
 
 ```{r}
 # Convert to POSIXct and calculate duration
+
 Caregiver_36Months_data <- Caregiver_36Months_data  %>% 
   mutate(
     survey_s_time1 = parse_date_time(survey_s_time, orders = "I:M:S p"),
@@ -57,7 +58,7 @@ Caregiver_36Months_data <- Caregiver_36Months_data  %>%
 
 
 
-#View(Caregiver_36Months_data %>% select(submissiondate,survey_s_time,survey_e_time,duration_minutes,survey_date,enu,fcn_no))
+View(Caregiver_36Months_data %>% select(survey_s_time,survey_e_time,duration_minutes,survey_date,enu,fcn_no))
 ```
 
 
@@ -232,6 +233,8 @@ Caregiver_36Months_data1 <- Caregiver_36Months_data1 %>%
 Caregiver_36Months_data1<-Caregiver_36Months_data1 %>% select(fcn_no,education_duration,environment_duration,asset_duration,health_stat_duration,ecdprograms_duration,socialsup_duration,mva_duration,htq4_duration,function_duration,ref_function_duration,psqi_duration,rmhm_duration,stressors_duration,cpas_duration,cbt_duration,rcm_m_duration,play_beliefs_duration,aspiration_duration,pss_duration)
 
 
+#View(Caregiver_36Months_data1)
+
 Caregiver_36Months_data<-Caregiver_36Months_data %>% full_join(Caregiver_36Months_data1,by="fcn_no")
 
 
@@ -248,7 +251,9 @@ cols_to_view <- c(
   grep("_duration$", names(Caregiver_36Months_data), value = TRUE)
 )
 
-View(Caregiver_36Months_data %>% select(all_of(cols_to_view)))
+
+
+#View(Caregiver_36Months_data %>% select(all_of(cols_to_view)))
 
 ```
 
@@ -256,7 +261,7 @@ View(Caregiver_36Months_data %>% select(all_of(cols_to_view)))
 ```{r}
 View(
   Caregiver_36Months_data %>%
-    select(submissiondate,survey_s_time,survey_e_time,duration_minutes,survey_date,enu,fcn_no,
+    select(survey_s_time,survey_e_time,duration_minutes,survey_date,enu,fcn_no,
       education_s_t, education_e_t, education_duration,
       environment_s_t, environment_e_t, environment_duration,
       asset_s_t, asset_e_t, asset_duration,
@@ -280,7 +285,361 @@ View(
 )
 
 
+
+
+
+library(writexl)
+
+# Create a smaller dataset with your selected variables
+Caregiver_36Months_subset <- Caregiver_36Months_data %>%
+  select(
+    survey_s_time, survey_e_time, duration_minutes, survey_date, enu, fcn_no,
+    education_s_t, education_e_t, education_duration,
+    environment_s_t, environment_e_t, environment_duration,
+    asset_s_t, asset_e_t, asset_duration,
+    health_stat_s_t, health_stat_e_t, health_stat_duration,
+    ecdprograms_s_t, ecdprograms_e_t, ecdprograms_duration,
+    socialsup_s_t, socialsup_e_t, socialsup_duration,
+    mva_s_t_m, mva_e_t_m, mva_duration,
+    htq4_s_time, htq4_e_t, htq4_duration,
+    function_s_t, function_e_t, function_duration,
+    ref_function_s_t, ref_function_e_t, ref_function_duration,
+    psqi_s_t, psqi_e_t, psqi_duration,
+    rmhm_s_t, rmhm_e_t, rmhm_duration,
+    stressors_s_time, stressors_e_time, stressors_duration,
+    cpas_s_time, cpas_e_time, cpas_duration,
+    cbt_s_time, cbt_e_time, cbt_duration,
+    rcm_m_s_time, rcm_m_e_time, rcm_m_duration,
+    play_beliefs_s_time, play_beliefs_e_time, play_beliefs_duration,
+    aspiration_s_time, aspiration_e_time, aspiration_duration,
+    pss_s_time, pss_e_time, pss_duration
+  )
+
+# Load the package
+library(writexl)
+# Export to Excel file
+#write_xlsx(Caregiver_36Months_subset, "Caregiver_36Months_duration_summary.xlsx")
+
+# File will be saved in your working directory
+#getwd()  # Run this to see where it was saved
+
+
+
+
+
 ```
+
+
+### Count Persentage By Field Enumanator
+
+
+
+```{r}
+### Count Persentage By Field Enumanator
+
+### Enviroment  Section
+
+Caregiver_36Months_data %>% select(starts_with("prei"),enu) %>% tbl_summary(by="enu")
+
+### Assest Section
+
+
+Caregiver_36Months_data %>% select(chair_n,bed_n,fan_n,chicken_n,gold_w,gold_item,solarpanel_n,gascylinder_n,table_n,trunk_n,plasticddrum_n,otherasset_o,enu) %>% tbl_summary(by="enu")
+
+
+### Health Section
+
+Caregiver_36Months_data %>% select(preg_current,preg_current_week,preg_current_plan,preg_current_breastfeed,preg_current_newc,newc_age,preg_contraceptive,health_smoke,food_energy,food_energy_1,food_energy_2,food_energy_3,food_energy_4,food_energy_96,food_yesterday_1,food_yesterday_2,food_yesterday_3,food_yesterday_4,food_yesterday_5,food_yesterday_6,food_yesterday_7,food_yesterday_9,food_yesterday_10,food_yesterday_11,food_yesterday_11,food_yesterday_12,food_oth_grain,food_oth_starch,enu) %>% tbl_summary(by="enu")
+
+### ECD Program
+
+Caregiver_36Months_data %>% select(starts_with("ecd_map"),enu) %>% tbl_summary(by="enu")
+
+### Vaccine Program
+
+Caregiver_36Months_data %>% select(starts_with("vaccin"),enu) %>% tbl_summary(by="enu")
+
+### socialsup Program
+
+Caregiver_36Months_data %>% select(starts_with("socialsup"),enu) %>%select(-c(socialsup_s_t, socialsup_s_time, socialsup_e_time ,socialsup_e_t)) %>%  tbl_summary(by="enu")
+
+### MVA Program
+
+Caregiver_36Months_data %>% select(starts_with("mva"),enu) %>%select(-c(mva_e_t_m ,mva_e_time_m, mva_s_time_m, mva_s_t_m)) %>%  tbl_summary(by="enu")
+
+
+
+
+
+
+```
+
+
+
+
+```{r}
+# Load required libraries
+library(gtsummary)
+library(tidyverse)
+library(flextable)
+library(officer)
+
+# Simple function that works with your current data
+create_supervisor_report <- function(data, output_file = "Supervisor_Report.pdf") {
+  
+  # Create a new Word document
+  doc <- read_docx()
+  
+  # Title page
+  doc <- doc %>%
+    body_add_par("Supervisor Report: Summary Statistics by Field Enumerator", 
+                 style = "heading 1") %>%
+    body_add_par(paste("Generated on:", format(Sys.Date(), "%B %d, %Y")), 
+                 style = "Normal") %>%
+    body_add_par("") %>%
+    body_add_par("")
+  
+  # Environment Section
+  doc <- doc %>%
+    body_add_par("1. Environment Section", style = "heading 2")
+  
+  env_table <- data %>%
+    select(starts_with("prei"), enu) %>%
+    tbl_summary(by = "enu") %>%
+    as_flex_table()
+  
+  doc <- doc %>%
+    body_add_flextable(env_table) %>%
+    body_add_par("") %>%
+    body_page_break()
+  
+  # Assets Section
+  doc <- doc %>%
+    body_add_par("2. Assets Section", style = "heading 2")
+  
+  assets_table <- data %>%
+    select(chair_n, bed_n, fan_n, chicken_n, gold_w, gold_item, solarpanel_n, 
+           gascylinder_n, table_n, trunk_n, plasticddrum_n, otherasset_o, enu) %>%
+    tbl_summary(by = "enu") %>%
+    as_flex_table()
+  
+  doc <- doc %>%
+    body_add_flextable(assets_table) %>%
+    body_add_par("") %>%
+    body_page_break()
+  
+  # Health Section
+  doc <- doc %>%
+    body_add_par("3. Health Section", style = "heading 2")
+  
+  health_table <- data %>%
+    select(preg_current, preg_current_week, preg_current_plan, preg_current_breastfeed,
+           preg_current_newc, newc_age, preg_contraceptive, health_smoke, food_energy,
+           food_energy_1, food_energy_2, food_energy_3, food_energy_4, food_energy_96,
+           food_yesterday_1, food_yesterday_2, food_yesterday_3, food_yesterday_4,
+           food_yesterday_5, food_yesterday_6, food_yesterday_7, food_yesterday_9,
+           food_yesterday_10, food_yesterday_11, food_yesterday_12, food_oth_grain,
+           food_oth_starch, enu) %>%
+    tbl_summary(by = "enu") %>%
+    as_flex_table()
+  
+  doc <- doc %>%
+    body_add_flextable(health_table) %>%
+    body_add_par("") %>%
+    body_page_break()
+  
+  # ECD Program Section
+  doc <- doc %>%
+    body_add_par("4. ECD Program", style = "heading 2")
+  
+  ecd_table <- data %>%
+    select(starts_with("ecd_map"), enu) %>%
+    tbl_summary(by = "enu") %>%
+    as_flex_table()
+  
+  doc <- doc %>%
+    body_add_flextable(ecd_table) %>%
+    body_add_par("") %>%
+    body_page_break()
+  
+  # Vaccine Program Section
+  doc <- doc %>%
+    body_add_par("5. Vaccine Program", style = "heading 2")
+  
+  vaccine_table <- data %>%
+    select(starts_with("vaccin"), enu) %>%
+    tbl_summary(by = "enu") %>%
+    as_flex_table()
+  
+  doc <- doc %>%
+    body_add_flextable(vaccine_table) %>%
+    body_add_par("") %>%
+    body_page_break()
+  
+  # Social Support Program Section
+  doc <- doc %>%
+    body_add_par("6. Social Support Program", style = "heading 2")
+  
+  socialsup_table <- data %>%
+    select(starts_with("socialsup"), enu) %>%
+    select(-c(socialsup_s_t, socialsup_s_time, socialsup_e_time, socialsup_e_t)) %>%
+    tbl_summary(by = "enu") %>%
+    as_flex_table()
+  
+  doc <- doc %>%
+    body_add_flextable(socialsup_table) %>%
+    body_add_par("") %>%
+    body_page_break()
+  
+  # MVA Program Section
+  doc <- doc %>%
+    body_add_par("7. MVA Program", style = "heading 2")
+  
+  mva_table <- data %>%
+    select(starts_with("mva"), enu) %>%
+    select(-c(mva_e_t_m, mva_e_time_m, mva_s_time_m, mva_s_t_m)) %>%
+    tbl_summary(by = "enu") %>%
+    as_flex_table()
+  
+  doc <- doc %>%
+    body_add_flextable(mva_table)
+  
+  # Save as PDF
+  print(doc, target = output_file)
+  
+  message("PDF report generated successfully: ", output_file)
+}
+
+# Alternative: Create individual tables and save as separate files
+create_individual_tables <- function(data) {
+  
+  # Create output directory
+  dir.create("supervisor_tables", showWarnings = FALSE)
+  
+  # Environment Section
+  env_table <- data %>%
+    select(starts_with("prei"), enu) %>%
+    tbl_summary(by = "enu")
+  
+  # Assets Section
+  assets_table <- data %>%
+    select(chair_n, bed_n, fan_n, chicken_n, gold_w, gold_item, solarpanel_n, 
+           gascylinder_n, table_n, trunk_n, plasticddrum_n, otherasset_o, enu) %>%
+    tbl_summary(by = "enu")
+  
+  # Health Section
+  health_table <- data %>%
+    select(preg_current, preg_current_week, preg_current_plan, preg_current_breastfeed,
+           preg_current_newc, newc_age, preg_contraceptive, health_smoke, food_energy,
+           food_energy_1, food_energy_2, food_energy_3, food_energy_4, food_energy_96,
+           food_yesterday_1, food_yesterday_2, food_yesterday_3, food_yesterday_4,
+           food_yesterday_5, food_yesterday_6, food_yesterday_7, food_yesterday_9,
+           food_yesterday_10, food_yesterday_11, food_yesterday_12, food_oth_grain,
+           food_oth_starch, enu) %>%
+    tbl_summary(by = "enu")
+  
+  # ECD Program
+  ecd_table <- data %>%
+    select(starts_with("ecd_map"), enu) %>%
+    tbl_summary(by = "enu")
+  
+  # Vaccine Program
+  vaccine_table <- data %>%
+    select(starts_with("vaccin"), enu) %>%
+    tbl_summary(by = "enu")
+  
+  # Social Support Program
+  socialsup_table <- data %>%
+    select(starts_with("socialsup"), enu) %>%
+    select(-c(socialsup_s_t, socialsup_s_time, socialsup_e_time, socialsup_e_t)) %>%
+    tbl_summary(by = "enu")
+  
+  # MVA Program
+  mva_table <- data %>%
+    select(starts_with("mva"), enu) %>%
+    select(-c(mva_e_t_m, mva_e_time_m, mva_s_time_m, mva_s_t_m)) %>%
+    tbl_summary(by = "enu")
+  
+  # Save individual tables
+  env_table %>% as_flex_table() %>% save_as_docx(path = "supervisor_tables/01_environment.docx")
+  assets_table %>% as_flex_table() %>% save_as_docx(path = "supervisor_tables/02_assets.docx")
+  health_table %>% as_flex_table() %>% save_as_docx(path = "supervisor_tables/03_health.docx")
+  ecd_table %>% as_flex_table() %>% save_as_docx(path = "supervisor_tables/04_ecd.docx")
+  vaccine_table %>% as_flex_table() %>% save_as_docx(path = "supervisor_tables/05_vaccine.docx")
+  socialsup_table %>% as_flex_table() %>% save_as_docx(path = "supervisor_tables/06_social_support.docx")
+  mva_table %>% as_flex_table() %>% save_as_docx(path = "supervisor_tables/07_mva.docx")
+  
+  message("Individual tables saved in 'supervisor_tables' folder")
+}
+
+# Quick function for HTML output (often more reliable)
+create_html_report <- function(data, output_file = "Supervisor_Report.html") {
+  
+  # Create all tables
+  tables_list <- list(
+    Environment = data %>% select(starts_with("prei"), enu) %>% tbl_summary(by = "enu"),
+    Assets = data %>% select(chair_n, bed_n, fan_n, chicken_n, gold_w, gold_item, solarpanel_n, 
+                            gascylinder_n, table_n, trunk_n, plasticddrum_n, otherasset_o, enu) %>% tbl_summary(by = "enu"),
+    Health = data %>% select(preg_current, preg_current_week, preg_current_plan, preg_current_breastfeed,
+                            preg_current_newc, newc_age, preg_contraceptive, health_smoke, food_energy,
+                            food_energy_1, food_energy_2, food_energy_3, food_energy_4, food_energy_96,
+                            food_yesterday_1, food_yesterday_2, food_yesterday_3, food_yesterday_4,
+                            food_yesterday_5, food_yesterday_6, food_yesterday_7, food_yesterday_9,
+                            food_yesterday_10, food_yesterday_11, food_yesterday_12, food_oth_grain,
+                            food_oth_starch, enu) %>% tbl_summary(by = "enu"),
+    ECD = data %>% select(starts_with("ecd_map"), enu) %>% tbl_summary(by = "enu"),
+    Vaccine = data %>% select(starts_with("vaccin"), enu) %>% tbl_summary(by = "enu"),
+    SocialSupport = data %>% select(starts_with("socialsup"), enu) %>% 
+      select(-c(socialsup_s_t, socialsup_s_time, socialsup_e_time, socialsup_e_t)) %>% 
+      tbl_summary(by = "enu"),
+    MVA = data %>% select(starts_with("mva"), enu) %>% 
+      select(-c(mva_e_t_m, mva_e_time_m, mva_s_time_m, mva_s_t_m)) %>% 
+      tbl_summary(by = "enu")
+  )
+  
+  # Combine into one table
+  combined_table <- tbl_merge(
+    tbls = tables_list,
+    tab_spanner = names(tables_list)
+  )
+  
+  # Save as HTML
+  combined_table %>% 
+    as_gt() %>%
+    gt::gtsave(filename = output_file)
+  
+  message("HTML report generated: ", output_file)
+}
+```
+
+
+
+
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

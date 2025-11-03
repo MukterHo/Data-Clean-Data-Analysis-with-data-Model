@@ -39,9 +39,10 @@ library(dplyr)
 
 HH_survey_data<-haven::read_dta("H:/.shortcut-targets-by-id/10GfELvbVWTnThBtJs-WKEAmKwWDCBjeu/Clean Dataset/2_Data_file/HH_survey_data.dta")
 
-PSS_data<-HH_survey_data %>% select(fcn_no,respondent_cat,pss_1,pss_2,pss_3,pss_4,pss_5,pss_6,pss_7,pss_8,pss_9,pss_10,pss_11) %>% filter(!is.na(pss_1))
+PSS_data<-HH_survey_data %>% select(fcn_no,respondent_cat,pss_1,pss_2,pss_3,pss_4,pss_5,pss_6,pss_7,pss_8,pss_9,pss_10,pss_11,,aspiration_1,aspiration_2,aspiration_4,aspiration_5) %>% filter(!is.na(pss_1))
 
 # View the data set
+#table(PSS_data$respondent_cat)
 
 View(PSS_data)
 
@@ -157,17 +158,16 @@ PSS_data %>%
 ############# EY Mother 
 
 ```{r}
-Aspiration_data<-HH_survey_data %>% filter(respondent_cat==3) %>% select(fcn_no,aspiration_1,aspiration_2)
+Aspiration_data<-PSS_data %>% filter(respondent_cat==3) %>% select(fcn_no,aspiration_1,aspiration_2,PSS_total)
 
-PSS_data1<-PSS_data %>% filter(respondent_cat==3) %>% full_join(Aspiration_data,by="fcn_no")
-
+Mother_data<-HH_survey_data %>% filter(respondent_cat==1) %>%select(fcn_no,q111_born_where,hh_children_n,thismother_chilld_n,restype,q105c_school_lvl_husband,q102b_guess_husband_age) %>% full_join(Aspiration_data,by="fcn_no") %>% filter(!is.na(PSS_total))
 ```
 
 #### Data Cleaning
 
 
 ```{r}
-PSS_data1<-PSS_data1 %>% filter(aspiration_1!=88)
+Mother_data<-Mother_data %>% filter(aspiration_1!=88)
 
 ```
 
@@ -176,11 +176,11 @@ PSS_data1<-PSS_data1 %>% filter(aspiration_1!=88)
 
 ```{r}
 # Convert all aspiration variables to factors with labels
-PSS_data1 <- PSS_data1 %>%
+Mother_data <- Mother_data %>%
   mutate(across(starts_with("aspiration"), ~as_factor(.)))
 
 
-table(PSS_data1$aspiration_1,PSS_data1$PSS_total)
+table(Mother_data$aspiration_1,Mother_data$PSS_total)
 ```
 
 
@@ -242,6 +242,46 @@ skewness(PSS_data$PSS_total, na.rm = TRUE)
 kurtosis(PSS_data$PSS_total, na.rm = TRUE)
 
 ```
+
+```{r}
+ACE_fci<-haven::read_dta("H:/.shortcut-targets-by-id/10GfELvbVWTnThBtJs-WKEAmKwWDCBjeu/Clean Dataset/2_Data_file/ace_fci_merged_v1.dta")
+```
+
+
+
+
+```{r}
+ACE_fci<-ACE_fci %>% select( fcn_no, fci_tot, edue_mother ,edue_level_f ,crowding_cat, ace_frequency_total_m, asset_index, asset_quintile, asset_index_c1,respondent_cat, q102b_guess_age_f, q102b_guess_age) %>% full_join(Mother_data,by="fcn_no") %>% filter(!is.na(PSS_total))
+
+```
+
+
+
+
+#### Analysis Part
+
+
+
+
+```{r}
+
+Data<-ACE_fci %>% filter(restype==1) %>% select(-respondent_cat)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
